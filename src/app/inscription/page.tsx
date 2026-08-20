@@ -24,7 +24,9 @@ export default function InscriptionPage() {
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState<{ confirmUrl: string; emailSent: boolean } | null>(null);
+  const [done, setDone] = useState<{ email: string } | null>(null);
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [resendMessage, setResendMessage] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -56,8 +58,27 @@ export default function InscriptionPage() {
       setLoading(false);
       return;
     }
-    setDone({ confirmUrl: data.confirmUrl, emailSent: data.emailSent === true });
+    setDone({ email: email });
     setLoading(false);
+  }
+
+  async function resendEmail() {
+    if (!done) return;
+    setResendState("sending");
+    setResendMessage("");
+    const res = await fetch("/api/signup/resend", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: done.email }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setResendState("error");
+      setResendMessage(data.error || "Impossible de renvoyer l’email");
+      return;
+    }
+    setResendState("sent");
+    setResendMessage("Un nouvel email a été envoyé.");
   }
 
   if (done) {
@@ -67,21 +88,31 @@ export default function InscriptionPage() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1B3AE8] text-lg font-bold text-white">
             R
           </div>
-          <h1 className="text-2xl font-bold text-[#1A1D23]">Confirmez votre email</h1>
+          <h1 className="text-2xl font-bold text-[#1A1D23]">Vérifiez votre boîte mail</h1>
           <p className="mt-3 text-[14px] leading-relaxed text-[#374151]">
-            {done.emailSent
-              ? "Un email de confirmation a été envoyé. Cliquez sur le lien pour activer l’espace de votre restaurant."
-              : "Aucun serveur d’email n’est configuré sur cette installation. Utilisez le lien ci-dessous pour confirmer votre adresse et activer votre espace."}
+            Un email de confirmation a été envoyé à <strong>{done.email}</strong>. Vérifiez votre boîte mail pour activer votre compte.
           </p>
-          <a
-            href={done.confirmUrl}
-            className="mt-6 block break-all rounded-xl bg-[#EEF2FF] px-4 py-3 text-[13px] font-medium text-[#1B3AE8]"
+          <p className="mt-3 text-[13px] text-[#6B7280]">
+            Pensez à regarder les courriers indésirables. Le lien est valable 24 heures.
+          </p>
+          {resendMessage && (
+            <p className={`mt-4 text-sm ${resendState === "error" ? "text-red-600" : "text-emerald-700"}`}>
+              {resendMessage}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={resendEmail}
+            disabled={resendState === "sending"}
+            className="mt-6 text-[14px] font-semibold text-[#1B3AE8] hover:underline disabled:opacity-50"
           >
-            {done.confirmUrl}
-          </a>
-          <Link href="/login" className="mt-6 inline-block text-[14px] font-semibold text-[#1B3AE8]">
-            Retour à la connexion
-          </Link>
+            {resendState === "sending" ? "Envoi…" : "Renvoyer l’email"}
+          </button>
+          <div>
+            <Link href="/login" className="mt-6 inline-block text-[14px] font-semibold text-[#1B3AE8]">
+              Retour à la connexion
+            </Link>
+          </div>
         </div>
       </div>
     );

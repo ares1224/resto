@@ -25,6 +25,7 @@ export type User = {
   emailConfirmed?: boolean;
   emailConfirmToken?: string;
   emailConfirmTokenExpires?: string;
+  emailConfirmSentAt?: string;
   mustChangePassword?: boolean;
   passwordSetupToken?: string;
   passwordSetupTokenExpires?: string;

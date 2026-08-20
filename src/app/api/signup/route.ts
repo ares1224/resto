@@ -4,14 +4,10 @@ import {
   findUserByEmail,
   updatePlatformDb,
 } from "@/lib/db/store";
-import { confirmationUrl, deliverEmail } from "@/lib/mail";
+import { confirmTokenExpiresAt, sendGerantConfirmation } from "@/lib/signup";
 import type { Restaurant, User } from "@/types";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function tokenExpires(hours: number): string {
-  return new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
-}
 
 export async function POST(request: Request) {
   let body: Record<string, unknown>;
@@ -64,7 +60,6 @@ export async function POST(request: Request) {
   const userId = crypto.randomUUID();
   const employeeId = crypto.randomUUID();
   const confirmToken = crypto.randomUUID();
-  const confirmUrl = confirmationUrl(confirmToken);
   const now = new Date().toISOString();
   const gerantName = `${firstName} ${lastName}`;
 
@@ -89,7 +84,8 @@ export async function POST(request: Request) {
     employeeId,
     emailConfirmed: false,
     emailConfirmToken: confirmToken,
-    emailConfirmTokenExpires: tokenExpires(48),
+    emailConfirmTokenExpires: confirmTokenExpiresAt(),
+    emailConfirmSentAt: now,
   };
 
   const tenant = seedDatabase();
@@ -142,40 +138,14 @@ export async function POST(request: Request) {
     throw e;
   }
 
-  const emailBody = [
-    `Bonjour ${firstName},`,
-    "",
-    `Votre restaurant « ${restaurantName} » est presque prêt.`,
-    "Cliquez sur le lien ci-dessous pour confirmer votre adresse email et activer votre espace :",
-    "",
-    confirmUrl,
-    "",
-    "Ce lien expire dans 48 heures.",
-  ].join("\n");
-
-  const sent = await deliverEmail({
-    to: email,
-    subject: `Confirmez votre inscription — ${restaurantName}`,
-    body: emailBody,
-  });
-
-  await updatePlatformDb((platform) => {
-    platform.outboundEmails.unshift({
-      id: crypto.randomUUID(),
-      to: email,
-      subject: `Confirmez votre inscription — ${restaurantName}`,
-      body: emailBody,
-      createdAt: now,
-      sent,
-    });
-    platform.outboundEmails = platform.outboundEmails.slice(0, 50);
-  });
+  const sent = await sendGerantConfirmation(user, restaurantName);
 
   return NextResponse.json({
     ok: true,
-    emailSent: sent,
-    confirmUrl,
-    message:
-      "Un email de confirmation a été préparé. Confirmez votre adresse pour activer votre espace.",
+    emailSent: sent.sent,
+    email,
+    message: sent.sent
+      ? `Un email de confirmation a été envoyé à ${email}.`
+      : "Le compte a été créé. L’email n’a pas pu partir : utilisez « Renvoyer l’email ».",
   });
 }

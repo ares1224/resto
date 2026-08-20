@@ -77,7 +77,7 @@ export async function login(email: string, password: string): Promise<Session | 
 
   if (user.emailConfirmed === false) {
     throw new LoginBlockedError(
-      "Confirmez votre adresse email pour activer l’espace de votre restaurant."
+      "Confirmez votre adresse email pour activer l’espace de votre restaurant. Le lien est valable 24 heures."
     );
   }
   if (restaurant.status === "pending") {
