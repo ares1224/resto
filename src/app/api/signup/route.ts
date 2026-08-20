@@ -4,13 +4,9 @@ import {
   findUserByEmail,
   updatePlatformDb,
 } from "@/lib/db/store";
-import {
-  attachSessionCookie,
-  homePathForRole,
-  login,
-} from "@/lib/auth";
 import { GENERIC_USER_ERROR } from "@/lib/public-error";
 import { hashPassword } from "@/lib/password";
+import { confirmTokenExpiresAt, sendGerantConfirmation } from "@/lib/signup";
 import type { Restaurant, User } from "@/types";
 
 export const runtime = "nodejs";
@@ -77,11 +73,11 @@ export async function POST(request: Request) {
     cuisineType,
     phone,
     contactEmail,
-    status: "active",
+    status: "pending",
     createdAt: now,
-    emailConfirmedAt: now,
   };
 
+  const confirmToken = crypto.randomUUID();
   const user: User = {
     id: userId,
     email,
@@ -90,7 +86,10 @@ export async function POST(request: Request) {
     role: "gerant",
     restaurantId,
     employeeId,
-    emailConfirmed: true,
+    emailConfirmed: false,
+    emailConfirmToken: confirmToken,
+    emailConfirmTokenExpires: confirmTokenExpiresAt(),
+    emailConfirmSentAt: now,
   };
 
   const tenant = seedDatabase();
@@ -126,7 +125,7 @@ export async function POST(request: Request) {
       platform.platformNotifications.unshift({
         id: crypto.randomUUID(),
         title: "Nouveau restaurant inscrit",
-        message: `${restaurantName} (${gerantName} — ${email}) vient de s’inscrire.`,
+        message: `${restaurantName} (${gerantName} — ${email}) vient de s’inscrire. En attente de confirmation d’email.`,
         read: false,
         createdAt: now,
         restaurantId,
@@ -144,20 +143,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: GENERIC_USER_ERROR }, { status: 500 });
   }
 
-  const session = await login(email, password);
-  if (!session) {
-    console.error("Signup auto-login returned null");
-    return NextResponse.json(
-      { error: GENERIC_USER_ERROR },
-      { status: 500 }
-    );
+  const sent = await sendGerantConfirmation(user, restaurantName);
+  if (!sent.sent) {
+    console.error("Signup confirmation email failed:", sent.error);
   }
 
-  const redirectTo = homePathForRole(session.role);
-  const res = NextResponse.json({
+  return NextResponse.json({
     ok: true,
-    role: session.role,
-    redirectTo,
+    needsConfirmation: true,
   });
-  return attachSessionCookie(res, session);
 }

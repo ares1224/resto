@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { confirmSignupEmail } from "@/lib/signup";
 import { ConfirmResendForm } from "./ConfirmResendForm";
+import { homePathForRole, sessionFromUser, writeSessionCookie } from "@/lib/auth";
 import { toPublicError } from "@/lib/public-error";
 
 export default async function ConfirmerEmailPage({
@@ -10,7 +12,14 @@ export default async function ConfirmerEmailPage({
 }) {
   const { token } = await searchParams;
   const result = token ? await confirmSignupEmail(token) : { error: "Lien invalide" };
-  const ok = "ok" in result;
+
+  if ("ok" in result && result.ok) {
+    await writeSessionCookie(sessionFromUser(result.user));
+    redirect(homePathForRole(result.user.role));
+  }
+
+  const expired = "expired" in result && result.expired;
+  const resendEmail = expired ? result.email : "";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#F5F6FA] p-4">
@@ -18,34 +27,18 @@ export default async function ConfirmerEmailPage({
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1B3AE8] text-lg font-bold text-white">
           R
         </div>
-        {ok ? (
-          <>
-            <h1 className="text-2xl font-bold text-[#1A1D23]">Espace activé</h1>
-            <p className="mt-3 text-[14px] text-[#374151]">
-              Votre adresse email est confirmée. Vous pouvez maintenant vous connecter à l’espace de votre restaurant.
-            </p>
-            <Link
-              href="/login"
-              className="mt-6 inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[#1B3AE8] px-6 font-semibold text-white"
-            >
-              Se connecter
-            </Link>
-          </>
-        ) : (
-          <>
-            <h1 className="text-2xl font-bold text-[#1A1D23]">Lien invalide</h1>
-            <p className="mt-3 text-[14px] text-[#374151]">
-              {"error" in result
-                ? toPublicError(result.error, "Ce lien de confirmation n’est plus valable.")
-                : "Ce lien de confirmation n’est plus valable."}
-              {" "}Vous pouvez demander un nouveau lien, valable 24 heures.
-            </p>
-            <ConfirmResendForm />
-            <Link href="/login" className="mt-6 inline-block font-semibold text-[#1B3AE8]">
-              Retour à la connexion
-            </Link>
-          </>
-        )}
+        <h1 className="text-2xl font-bold text-[#1A1D23]">
+          {expired ? "Ce lien a expiré." : "Lien invalide"}
+        </h1>
+        <p className="mt-3 text-[14px] text-[#374151]">
+          {expired
+            ? "Demandez un nouveau lien de confirmation, valable 24 heures."
+            : `${"error" in result ? toPublicError(result.error, "Ce lien n’est plus valable.") : "Ce lien n’est plus valable."} Vous pouvez demander un nouveau lien, valable 24 heures.`}
+        </p>
+        <ConfirmResendForm defaultEmail={resendEmail} submitLabel="Recevoir un nouveau lien" />
+        <Link href="/login" className="mt-6 inline-block font-semibold text-[#1B3AE8]">
+          Retour à la connexion
+        </Link>
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { toPublicError } from "@/lib/public-error";
+import { ConfirmResendForm } from "@/app/confirmer-email/ConfirmResendForm";
 
 const CUISINES = ["Bistrot", "Brasserie", "Française", "Italienne", "Japonaise", "Fusion", "Autre"];
 
@@ -25,6 +26,7 @@ export default function InscriptionPage() {
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkEmail, setCheckEmail] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -53,18 +55,34 @@ export default function InscriptionPage() {
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) {
-      const loginResponse = await fetch("/api/auth/login", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const loginData = await loginResponse.json().catch(() => ({}));
-      window.location.href = loginData.redirectTo || data.redirectTo || "/dashboard";
+      setCheckEmail(email);
+      setLoading(false);
       return;
     }
     setError(toPublicError(data.error, "Impossible de créer le compte"));
     setLoading(false);
+  }
+
+  if (checkEmail) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F6FA] p-4">
+        <div className="w-full max-w-lg rounded-2xl bg-white p-8 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1B3AE8] text-lg font-bold text-white">
+            R
+          </div>
+          <h1 className="text-2xl font-bold text-[#1A1D23]">Vérifiez votre boîte mail</h1>
+          <p className="mt-3 text-[14px] leading-relaxed text-[#374151]">
+            Vérifiez votre boîte mail pour activer votre compte.
+          </p>
+          <ConfirmResendForm defaultEmail={checkEmail} submitLabel="Recevoir un nouveau lien" />
+          <p className="mt-6 text-center text-[14px] text-[#6B7280]">
+            <Link href="/login" className="font-semibold text-[#1B3AE8] hover:underline">
+              Retour à la connexion
+            </Link>
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -76,7 +94,7 @@ export default function InscriptionPage() {
           </div>
           <h1 className="text-2xl font-bold text-[#1A1D23]">Inscrire un restaurant</h1>
           <p className="mt-1 text-[14px] text-[#6B7280]">
-            Créez l’espace de votre établissement.
+            Créez l’espace de votre établissement. Un email de confirmation vous sera envoyé.
           </p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-6">

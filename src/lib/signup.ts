@@ -19,7 +19,10 @@ export async function sendGerantConfirmation(user: User, restaurantName: string)
     return { sent: false, error: "Échec de l'envoi de l'email" };
   }
   try {
-    await sendConfirmationEmail(user.email, user.emailConfirmToken);
+    await sendConfirmationEmail(user.email, user.emailConfirmToken, {
+      firstName: user.name.trim().split(/\s+/)[0] || user.name,
+      restaurantName,
+    });
     await updatePlatformDb((platform) => {
       platform.outboundEmails.unshift({
         id: crypto.randomUUID(),
@@ -97,20 +100,32 @@ export async function resendGerantConfirmation(email: string): Promise<{ ok: tru
   return { ok: true };
 }
 
-export async function confirmSignupEmail(token: string): Promise<{ ok: true } | { error: string }> {
+export async function confirmSignupEmail(
+  token: string
+): Promise<{ ok: true; user: User } | { expired: true; email: string } | { error: string }> {
   if (!token) return { error: "Lien invalide" };
 
+  const platform = await getPlatformDb();
+  const found = findUserByConfirmToken(platform, token);
+  if (!found) {
+    return { error: "Lien invalide" };
+  }
+  if (!isTokenValid(found.user.emailConfirmTokenExpires)) {
+    return { expired: true, email: found.user.email };
+  }
+
   try {
+    let confirmed: User | undefined;
     await updatePlatformDb((platform) => {
-      const found = findUserByConfirmToken(platform, token);
-      if (!found || !isTokenValid(found.user.emailConfirmTokenExpires)) {
+      const current = findUserByConfirmToken(platform, token);
+      if (!current || !isTokenValid(current.user.emailConfirmTokenExpires)) {
         throw new Error("INVALID_TOKEN");
       }
 
-      const restaurant = platform.restaurants.find((r) => r.id === found.restaurantId);
+      const restaurant = platform.restaurants.find((r) => r.id === current.restaurantId);
       if (!restaurant) throw new Error("INVALID_TOKEN");
 
-      const user = platform.tenants[found.restaurantId]?.users.find((u) => u.id === found.user.id);
+      const user = platform.tenants[current.restaurantId]?.users.find((u) => u.id === current.user.id);
       if (!user) throw new Error("INVALID_TOKEN");
 
       user.emailConfirmed = true;
@@ -132,11 +147,13 @@ export async function confirmSignupEmail(token: string): Promise<{ ok: true } | 
         restaurantId: restaurant.id,
       });
       platform.platformNotifications = platform.platformNotifications.slice(0, 100);
+      confirmed = { ...user, restaurantId: current.restaurantId };
     });
-    return { ok: true };
+    if (!confirmed) return { error: GENERIC_USER_ERROR };
+    return { ok: true, user: confirmed };
   } catch (e) {
     if (e instanceof Error && e.message === "INVALID_TOKEN") {
-      return { error: "Lien expiré ou déjà utilisé" };
+      return { error: "Lien invalide" };
     }
     console.error("Confirm email error:", e);
     return { error: GENERIC_USER_ERROR };

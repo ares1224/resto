@@ -76,6 +76,10 @@ export async function login(email: string, password: string): Promise<Session | 
     );
   }
 
+  if (user.role === "gerant" && user.emailConfirmed === false) {
+    throw new LoginBlockedError("Vérifiez votre boîte mail pour activer votre compte.");
+  }
+
   const session = sessionFromUser({ ...user, restaurantId });
   await writeSessionCookie(session);
   return session;

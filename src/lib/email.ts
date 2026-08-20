@@ -12,7 +12,11 @@ function appUrl(): string {
   return "http://localhost:3000";
 }
 
-export async function sendConfirmationEmail(email: string, token: string) {
+export async function sendConfirmationEmail(
+  email: string,
+  token: string,
+  extras?: { firstName?: string; restaurantName?: string }
+) {
   const apiKey = env("RESEND_API_KEY");
   if (!apiKey) {
     console.error("Erreur envoi email: RESEND_API_KEY absente");
@@ -21,16 +25,29 @@ export async function sendConfirmationEmail(email: string, token: string) {
 
   const confirmUrl = `${appUrl()}/confirmer-email?token=${encodeURIComponent(token)}`;
   const from = env("RESEND_FROM") || "RestoManager <beth.t@example.com>";
+  const firstName = extras?.firstName?.trim() || "";
+  const restaurantName = extras?.restaurantName?.trim() || "votre restaurant";
   const resend = new Resend(apiKey);
 
   const { data, error } = await resend.emails.send({
     from,
     to: email,
-    subject: "Confirmez votre adresse email",
+    subject: "Activez votre espace RestoManager",
+    text: [
+      firstName ? `Bonjour ${firstName},` : "Bonjour,",
+      "",
+      `Merci d'avoir créé votre espace pour ${restaurantName}.`,
+      "",
+      "Cliquez sur le lien ci-dessous pour confirmer votre adresse email et accéder à votre espace :",
+      confirmUrl,
+      "",
+      "Ce lien est valable 24 heures.",
+    ].join("\n"),
     html: `
-      <div style="font-family: sans-serif; max-width: 500px; margin: auto; padding: 32px;">
-        <h2>Bienvenue sur RestoManager</h2>
-        <p>Cliquez sur le bouton ci-dessous pour confirmer votre adresse email et activer votre compte.</p>
+      <div style="font-family: sans-serif; max-width: 500px; margin: auto; padding: 32px; color: #1A1D23;">
+        <p>${firstName ? `Bonjour ${escapeHtml(firstName)},` : "Bonjour,"}</p>
+        <p>Merci d'avoir créé votre espace pour ${escapeHtml(restaurantName)}.</p>
+        <p>Cliquez sur le bouton ci-dessous pour confirmer votre adresse email et accéder à votre espace :</p>
         <a href="${confirmUrl}" style="
           display: inline-block;
           background: #1B3AE8;
@@ -42,7 +59,7 @@ export async function sendConfirmationEmail(email: string, token: string) {
           margin-top: 16px;
         ">Confirmer mon email</a>
         <p style="color: #6B7280; font-size: 13px; margin-top: 24px;">
-          Ce lien est valable 24 heures. Si vous n'avez pas créé de compte, ignorez cet email.
+          Ce lien est valable 24 heures.
         </p>
       </div>
     `,

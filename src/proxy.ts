@@ -65,11 +65,31 @@ function isPublic(path: string) {
 }
 
 export function proxy(request: NextRequest) {
-  const sessionRaw = request.cookies.get("bistrot_session")?.value;
   const path = request.nextUrl.pathname;
 
   if (path === "/setup") {
     return NextResponse.redirect(new URL("/inscription", request.url));
+  }
+
+  const sessionRaw = request.cookies.get("bistrot_session")?.value;
+
+  if (path === "/login" || path === "/inscription") {
+    if (sessionRaw) {
+      try {
+        const session = JSON.parse(sessionRaw) as { role?: Role; mustChangePassword?: boolean };
+        if (session.role) {
+          if (session.mustChangePassword) {
+            const url = new URL("/mon-espace/mot-de-passe", request.url);
+            url.searchParams.set("required", "1");
+            return NextResponse.redirect(url);
+          }
+          const dest = session.role === "superadmin" ? "/admin" : "/dashboard";
+          return NextResponse.redirect(new URL(dest, request.url));
+        }
+      } catch {
+        // cookie invalide : on laisse la page publique s'afficher
+      }
+    }
   }
 
   if (isPublic(path)) {

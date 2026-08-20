@@ -384,6 +384,9 @@ async function requireTenantId(): Promise<string> {
   if (restaurant.status === "inactive") {
     throw new TenantError("Restaurant inactif", 403);
   }
+  if (restaurant.status === "pending") {
+    throw new TenantError("Restaurant inactif", 403);
+  }
 
   return user.restaurantId;
 }
