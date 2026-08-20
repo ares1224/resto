@@ -138,6 +138,10 @@ export async function POST(request: Request) {
         { status: 409 }
       );
     }
+    const message = e instanceof Error ? e.message : "";
+    if (message.includes("Stockage persistant indisponible")) {
+      return NextResponse.json({ error: message }, { status: 503 });
+    }
     throw e;
   }
 

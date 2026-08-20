@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
-  serverExternalPackages: ["resend"],
+  serverExternalPackages: ["resend", "@vercel/blob"],
 };
 
 export default nextConfig;

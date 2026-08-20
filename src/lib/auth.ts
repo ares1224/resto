@@ -14,6 +14,7 @@ const SESSION_COOKIE_OPTIONS = {
   sameSite: "lax" as const,
   path: "/",
   maxAge: 60 * 60 * 24 * 7,
+  secure: process.env.VERCEL === "1" || process.env.NODE_ENV === "production",
 };
 
 export type Session = {

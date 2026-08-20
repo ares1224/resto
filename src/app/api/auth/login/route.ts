@@ -26,6 +26,10 @@ export async function POST(request: Request) {
     if (e instanceof LoginBlockedError) {
       return NextResponse.json({ error: e.message }, { status: 403 });
     }
+    const message = e instanceof Error ? e.message : "";
+    if (message.includes("Stockage persistant indisponible")) {
+      return NextResponse.json({ error: message }, { status: 503 });
+    }
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

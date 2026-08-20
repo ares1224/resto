@@ -58,12 +58,8 @@ export default function InscriptionPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-
-      if (loginResponse.ok) {
-        window.location.href = "/dashboard";
-      } else {
-        window.location.href = "/login";
-      }
+      const loginData = await loginResponse.json().catch(() => ({}));
+      window.location.href = loginData.redirectTo || data.redirectTo || "/dashboard";
       return;
     }
     setError(data.error || "Impossible de créer le compte");

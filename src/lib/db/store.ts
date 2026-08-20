@@ -3,9 +3,10 @@ import path from "path";
 import type { Database, PlatformDatabase, Restaurant, User } from "@/types";
 import { defaultSuperAdmin, seedDatabase, seedPlatform } from "./seed";
 import { DEFAULT_MANAGER_PERMISSIONS } from "@/lib/permissions";
+import { readBlobJson, useBlobStorage, writeBlobJson } from "./persistence";
 
-// En local : data/ à la racine du projet. Sur Vercel le disque est en lecture
-// seule hors /tmp, donc on y écrit une base éphémère (recréée à chaque cold start).
+// En local : data/ à la racine du projet.
+// Sur Vercel : Vercel Blob (privé). /tmp n’est pas partagé entre instances.
 const DATA_DIR = process.env.VERCEL
   ? path.join("/tmp", "bistrot-data")
   : path.join(process.cwd(), "data");
@@ -205,8 +206,13 @@ async function ensureDataFile(): Promise<void> {
 
 async function savePlatform(db: PlatformDatabase): Promise<void> {
   cache = db;
-  await fs.mkdir(DATA_DIR, { recursive: true });
   const content = JSON.stringify(db, null, 2);
+  if (useBlobStorage()) {
+    await writeBlobJson(content);
+    cacheMtimeMs = Date.now();
+    return;
+  }
+  await fs.mkdir(DATA_DIR, { recursive: true });
   const tmp = path.join(DATA_DIR, `restaurant.${process.pid}.${Date.now()}.tmp`);
   await fs.writeFile(tmp, content, "utf-8");
 
@@ -228,6 +234,18 @@ async function savePlatform(db: PlatformDatabase): Promise<void> {
 }
 
 async function readPlatformFromDisk(): Promise<PlatformDatabase> {
+  if (useBlobStorage()) {
+    const raw = await readBlobJson();
+    if (!raw) {
+      const platform = seedPlatform();
+      await savePlatform(platform);
+      return platform;
+    }
+    const { platform, migrated } = migrateToPlatform(JSON.parse(raw));
+    if (migrated) await savePlatform(platform);
+    return platform;
+  }
+
   await ensureDataFile();
   let lastError: unknown;
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -301,6 +319,11 @@ export function findUserByConfirmToken(
 }
 
 export async function getPlatformDb(): Promise<PlatformDatabase> {
+  if (useBlobStorage()) {
+    cache = await readPlatformFromDisk();
+    cacheMtimeMs = Date.now();
+    return cache;
+  }
   const mtime = await getFileMtime();
   if (cache && mtime === cacheMtimeMs) return cache;
   cache = await readPlatformFromDisk();

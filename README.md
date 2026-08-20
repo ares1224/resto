@@ -51,4 +51,13 @@ Le dépôt GitHub est `https://github.com/ares1224/resto`.
 
 Vercel redéploiera à chaque push sur `main`.
 
-**Limite actuelle :** la base JSON est écrite dans `/tmp` sur Vercel. Les données survivent le temps d'une instance, puis se réinitialisent. Pour un usage réel en production, branchez un stockage persistant (`DATABASE_URL` ou `BLOB_READ_WRITE_TOKEN` dans `.env.example`). En local, les données restent dans `data/restaurant.json`.
+**Stockage obligatoire :** sur Vercel le disque `/tmp` est perdu entre deux requêtes. Créez un **Blob store privé** :
+
+1. Projet Vercel → **Storage** → **Create Database** → **Blob**
+2. Accès : **Private**
+3. **Connect** le store au projet `resto` (Production + Preview)
+4. Redéployez
+
+Les variables `BLOB_STORE_ID` / `BLOB_READ_WRITE_TOKEN` sont ajoutées automatiquement. Sans ce store, un compte créé à l’inscription disparaît et la connexion affiche « Identifiants invalides ».
+
+En local, les données restent dans `data/restaurant.json`.
