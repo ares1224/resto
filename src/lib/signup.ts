@@ -1,4 +1,4 @@
-import { findUserByConfirmToken, findUserByEmail, updatePlatformDb } from "@/lib/db/store";
+import { findUserByConfirmToken, findUserByEmail, getPlatformDb, updatePlatformDb } from "@/lib/db/store";
 import { isTokenValid } from "@/lib/password";
 import { CONFIRM_TOKEN_HOURS } from "@/lib/mail";
 import { sendConfirmationEmail } from "@/lib/email";
@@ -36,8 +36,6 @@ export async function resendGerantConfirmation(email: string): Promise<{ ok: tru
   const normalized = email.trim().toLowerCase();
   if (!normalized) return { error: "Email requis", status: 400 };
 
-  let snapshot: { user: User; restaurantName: string } | null = null;
-
   try {
     await updatePlatformDb((platform) => {
       const found = findUserByEmail(platform, normalized);
@@ -60,7 +58,6 @@ export async function resendGerantConfirmation(email: string): Promise<{ ok: tru
       user.emailConfirmToken = crypto.randomUUID();
       user.emailConfirmTokenExpires = confirmTokenExpiresAt();
       user.emailConfirmSentAt = new Date().toISOString();
-      snapshot = { user: { ...user }, restaurantName: restaurant.name };
     });
   } catch (e) {
     if (e instanceof Error && e.message === "NOT_FOUND") {
@@ -75,11 +72,16 @@ export async function resendGerantConfirmation(email: string): Promise<{ ok: tru
     throw e;
   }
 
-  if (!snapshot) {
+  const platform = await getPlatformDb();
+  const found = findUserByEmail(platform, normalized);
+  const restaurant = found?.restaurantId
+    ? platform.restaurants.find((r) => r.id === found.restaurantId)
+    : undefined;
+  if (!found?.user || !restaurant) {
     return { error: "Impossible de préparer l’email", status: 500 };
   }
 
-  const sent = await sendGerantConfirmation(snapshot.user, snapshot.restaurantName);
+  const sent = await sendGerantConfirmation(found.user, restaurant.name);
   if (!sent.sent) {
     return { error: sent.error || "Impossible d’envoyer l’email pour le moment", status: 502 };
   }
