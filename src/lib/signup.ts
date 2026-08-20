@@ -87,8 +87,8 @@ export async function resendGerantConfirmation(email: string): Promise<{ ok: tru
   }
 
   const snapshot = { user: found.user, restaurantName: restaurant.name } as SignupSnapshot;
-  const snap = snapshot as SignupSnapshot;
-  const sent = await sendGerantConfirmation(snap.user, snap.restaurantName);
+  // @ts-ignore
+  const sent = await sendGerantConfirmation(snapshot.user, snapshot.restaurantName);
   if (!sent.sent) {
     return { error: sent.error || "Impossible d’envoyer l’email pour le moment", status: 502 };
   }
