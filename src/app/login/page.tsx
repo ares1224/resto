@@ -73,12 +73,6 @@ export default function LoginPage() {
             Créer un espace
           </Link>
         </p>
-        <p className="mt-3 text-center text-[13px] text-[#6B7280]">
-          Pas reçu l’email de confirmation ?{" "}
-          <Link href="/confirmer-email" className="font-semibold text-[#1B3AE8] hover:underline">
-            Renvoyer le lien
-          </Link>
-        </p>
       </div>
     </div>
   );

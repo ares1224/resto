@@ -24,9 +24,6 @@ export default function InscriptionPage() {
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState<{ email: string } | null>(null);
-  const [resendState, setResendState] = useState<"idle" | "sending" | "sent" | "error">("idle");
-  const [resendMessage, setResendMessage] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -54,66 +51,11 @@ export default function InscriptionPage() {
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) {
-      setDone({ email });
-      setLoading(false);
+      window.location.assign(data.redirectTo || "/dashboard");
       return;
     }
-    setError(data.error || "Échec de l'envoi de l'email");
+    setError(data.error || "Impossible de créer le compte");
     setLoading(false);
-  }
-
-  async function resendEmail() {
-    if (!done) return;
-    setResendState("sending");
-    setResendMessage("");
-    const res = await fetch("/api/signup/resend", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: done.email }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setResendState("error");
-      setResendMessage(data.error || "Impossible de renvoyer l’email");
-      return;
-    }
-    setResendState("sent");
-    setResendMessage("Un nouvel email a été envoyé.");
-    setDone({ email: done.email });
-  }
-
-  if (done) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F5F6FA] p-4">
-        <div className="w-full max-w-lg rounded-2xl bg-white p-8 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1B3AE8] text-lg font-bold text-white">
-            R
-          </div>
-          <h1 className="text-2xl font-bold text-[#1A1D23]">Vérifiez votre boîte mail</h1>
-          <p className="mt-3 text-[14px] leading-relaxed text-[#374151]">
-            Un email de confirmation a été envoyé à votre adresse. Vérifiez votre boîte mail pour activer votre compte.
-          </p>
-          {resendMessage && (
-            <p className={`mt-4 text-sm ${resendState === "error" ? "text-red-600" : "text-emerald-700"}`}>
-              {resendMessage}
-            </p>
-          )}
-          <button
-            type="button"
-            onClick={resendEmail}
-            disabled={resendState === "sending"}
-            className="mt-6 text-[14px] font-semibold text-[#1B3AE8] hover:underline disabled:opacity-50"
-          >
-            {resendState === "sending" ? "Envoi…" : "Renvoyer l’email"}
-          </button>
-          <div>
-            <Link href="/login" className="mt-6 inline-block text-[14px] font-semibold text-[#1B3AE8]">
-              Retour à la connexion
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -125,7 +67,7 @@ export default function InscriptionPage() {
           </div>
           <h1 className="text-2xl font-bold text-[#1A1D23]">Inscrire un restaurant</h1>
           <p className="mt-1 text-[14px] text-[#6B7280]">
-            Créez l’espace de votre établissement. Un email de confirmation sera demandé.
+            Créez l’espace de votre établissement.
           </p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-6">

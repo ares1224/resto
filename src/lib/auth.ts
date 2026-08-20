@@ -63,9 +63,6 @@ export async function login(email: string, password: string): Promise<Session | 
   const { user } = found;
 
   if (user.role === "superadmin") {
-    if (user.emailConfirmed === false) {
-      throw new LoginBlockedError("Confirmez votre adresse email avant de vous connecter.");
-    }
     const session = sessionFromUser(user);
     await writeSessionCookie(session);
     return session;
@@ -75,16 +72,6 @@ export async function login(email: string, password: string): Promise<Session | 
   const restaurant = platform.restaurants.find((r) => r.id === restaurantId);
   if (!restaurant) return null;
 
-  if (user.emailConfirmed === false) {
-    throw new LoginBlockedError(
-      "Confirmez votre adresse email pour activer l’espace de votre restaurant. Le lien est valable 24 heures."
-    );
-  }
-  if (restaurant.status === "pending") {
-    throw new LoginBlockedError(
-      "Votre espace n’est pas encore activé. Confirmez d’abord votre email."
-    );
-  }
   if (restaurant.status === "inactive") {
     throw new LoginBlockedError(
       "Ce restaurant est désactivé. Contactez le support de la plateforme."

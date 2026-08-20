@@ -4,8 +4,7 @@ import {
   findUserByEmail,
   updatePlatformDb,
 } from "@/lib/db/store";
-import { confirmTokenExpiresAt } from "@/lib/signup";
-import { sendConfirmationEmail } from "@/lib/email";
+import { attachSessionCookie, sessionFromUser } from "@/lib/auth";
 import type { Restaurant, User } from "@/types";
 
 export const runtime = "nodejs";
@@ -62,7 +61,6 @@ export async function POST(request: Request) {
   const restaurantId = crypto.randomUUID();
   const userId = crypto.randomUUID();
   const employeeId = crypto.randomUUID();
-  const confirmToken = crypto.randomUUID();
   const now = new Date().toISOString();
   const gerantName = `${firstName} ${lastName}`;
 
@@ -73,8 +71,9 @@ export async function POST(request: Request) {
     cuisineType,
     phone,
     contactEmail,
-    status: "pending",
+    status: "active",
     createdAt: now,
+    emailConfirmedAt: now,
   };
 
   const user: User = {
@@ -85,10 +84,7 @@ export async function POST(request: Request) {
     role: "gerant",
     restaurantId,
     employeeId,
-    emailConfirmed: false,
-    emailConfirmToken: confirmToken,
-    emailConfirmTokenExpires: confirmTokenExpiresAt(),
-    emailConfirmSentAt: now,
+    emailConfirmed: true,
   };
 
   const tenant = seedDatabase();
@@ -124,7 +120,7 @@ export async function POST(request: Request) {
       platform.platformNotifications.unshift({
         id: crypto.randomUUID(),
         title: "Nouveau restaurant inscrit",
-        message: `${restaurantName} (${gerantName} — ${email}) vient de s’inscrire. En attente de confirmation d’email.`,
+        message: `${restaurantName} (${gerantName} — ${email}) vient de s’inscrire.`,
         read: false,
         createdAt: now,
         restaurantId,
@@ -141,15 +137,10 @@ export async function POST(request: Request) {
     throw e;
   }
 
-  try {
-    await sendConfirmationEmail(email, confirmToken);
-  } catch (error) {
-    console.error("Erreur envoi email inscription:", error);
-    return NextResponse.json(
-      { error: "Échec de l'envoi de l'email" },
-      { status: 500 }
-    );
-  }
-
-  return NextResponse.json({ message: "Email de confirmation envoyé" });
+  const session = sessionFromUser(user);
+  const res = NextResponse.json({
+    ok: true,
+    redirectTo: "/dashboard",
+  });
+  return attachSessionCookie(res, session);
 }

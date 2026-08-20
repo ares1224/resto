@@ -352,7 +352,7 @@ async function requireTenantId(): Promise<string> {
 
   const restaurant = platform.restaurants.find((r) => r.id === user.restaurantId);
   if (!restaurant) throw new TenantError("Restaurant introuvable", 403);
-  if (restaurant.status !== "active") {
+  if (restaurant.status === "inactive") {
     throw new TenantError("Restaurant inactif", 403);
   }
 
