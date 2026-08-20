@@ -42,12 +42,48 @@ function emptyPlatform() {
   };
 }
 
-function findEmail(platform, email) {
-  if ((platform.superAdmins || []).some((u) => u.email === email)) return true;
-  for (const tenant of Object.values(platform.tenants || {})) {
-    if ((tenant.users || []).some((u) => u.email === email)) return true;
+function toPlatform(raw) {
+  if (raw && raw.version === 2 && typeof raw.tenants === "object" && raw.tenants) {
+    if (!Array.isArray(raw.superAdmins)) raw.superAdmins = [];
+    if (!Array.isArray(raw.restaurants)) raw.restaurants = [];
+    if (!Array.isArray(raw.platformNotifications)) raw.platformNotifications = [];
+    if (!Array.isArray(raw.outboundEmails)) raw.outboundEmails = [];
+    return raw;
   }
-  return false;
+
+  const tenant = raw && typeof raw === "object" ? raw : {};
+  if (!Array.isArray(tenant.users)) tenant.users = [];
+  const id = crypto.randomUUID();
+  const gerant = tenant.users.find((u) => u.role === "gerant");
+  for (const user of tenant.users) {
+    user.restaurantId = id;
+    if (user.emailConfirmed === undefined) user.emailConfirmed = true;
+  }
+
+  return {
+    version: 2,
+    restaurants: [
+      {
+        id,
+        name: (tenant.settings && tenant.settings.restaurantName) || "Restaurant existant",
+        address: (tenant.settings && tenant.settings.address) || "",
+        cuisineType: (tenant.settings && tenant.settings.cuisineType) || "",
+        phone: "",
+        contactEmail: (gerant && gerant.email) || "",
+        status: "active",
+        createdAt: new Date().toISOString(),
+        emailConfirmedAt: new Date().toISOString(),
+      },
+    ],
+    superAdmins: [],
+    tenants: { [id]: tenant },
+    platformNotifications: [],
+    outboundEmails: [],
+  };
+}
+
+function findSuperAdmin(platform, email) {
+  return (platform.superAdmins || []).some((u) => u.email === email);
 }
 
 function main() {
@@ -79,21 +115,11 @@ function main() {
   if (!fs.existsSync(dataFile)) {
     platform = emptyPlatform();
   } else {
-    const raw = JSON.parse(fs.readFileSync(dataFile, "utf-8"));
-    if (raw && raw.version === 2 && Array.isArray(raw.superAdmins)) {
-      platform = raw;
-    } else {
-      console.error(
-        "Le fichier data/restaurant.json n'est pas au format plateforme v2. Lancez une fois `npm run dev`, puis relancez ce script."
-      );
-      process.exit(1);
-    }
+    platform = toPlatform(JSON.parse(fs.readFileSync(dataFile, "utf-8")));
   }
 
-  if (!Array.isArray(platform.superAdmins)) platform.superAdmins = [];
-
-  if (findEmail(platform, email)) {
-    console.log(`Un compte existe déjà avec l'email ${email}. Aucun super admin n'a été créé.`);
+  if (findSuperAdmin(platform, email)) {
+    console.log(`Un super admin existe déjà avec l'email ${email}. Aucun compte n'a été créé.`);
     process.exit(0);
   }
 
