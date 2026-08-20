@@ -2,6 +2,16 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import type { Role } from "@/types";
 
+const PUBLIC_PATHS = [
+  "/login",
+  "/inscription",
+  "/confirmer-email",
+  "/activer-compte",
+  "/setup",
+];
+
+const PUBLIC_PREFIXES = ["/api/auth", "/api/setup", "/api/signup"];
+
 const GERANT_ONLY_PREFIXES = [
   "/finances",
   "/parametres",
@@ -49,11 +59,20 @@ function matchesPrefix(path: string, prefixes: string[]) {
   return prefixes.some((p) => path === p || path.startsWith(p + "/"));
 }
 
+function isPublic(path: string) {
+  if (PUBLIC_PATHS.includes(path)) return true;
+  return matchesPrefix(path, PUBLIC_PREFIXES);
+}
+
 export function middleware(request: NextRequest) {
   const sessionRaw = request.cookies.get("bistrot_session")?.value;
   const path = request.nextUrl.pathname;
 
-  if (path === "/login" || path === "/setup" || path === "/activer-compte" || path.startsWith("/api/auth") || path.startsWith("/api/setup")) {
+  if (path === "/setup") {
+    return NextResponse.redirect(new URL("/inscription", request.url));
+  }
+
+  if (isPublic(path)) {
     return NextResponse.next();
   }
 
@@ -87,6 +106,28 @@ export function middleware(request: NextRequest) {
   }
 
   const { role } = session;
+
+  if (role === "superadmin") {
+    const allowed =
+      path === "/" ||
+      path.startsWith("/admin") ||
+      path.startsWith("/api/admin") ||
+      path.startsWith("/api/auth");
+    if (!allowed) {
+      if (path.startsWith("/api/")) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      return NextResponse.redirect(new URL("/admin", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  if (path.startsWith("/admin") || path.startsWith("/api/admin")) {
+    if (path.startsWith("/api/")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
 
   if (role === "employe") {
     const allowed =

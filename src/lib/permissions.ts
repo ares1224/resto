@@ -101,12 +101,14 @@ export function hasPermission(
   permission: Permission,
   managerPerms: ManagerPermissions = DEFAULT_MANAGER_PERMISSIONS
 ): boolean {
+  if (session.role === "superadmin") return false;
   if (session.role === "gerant") return GERANT_PERMISSIONS.includes(permission);
   if (session.role === "employe") return EMPLOYE_PERMISSIONS.includes(permission);
   return managerPermissionsToList(managerPerms).includes(permission);
 }
 
 const MODULE_ACCESS: Record<Role, Module[]> = {
+  superadmin: [],
   gerant: [...MODULES],
   manager: ["dashboard", "personnel", "stocks", "clientele", "hygiene", "operations", "marketing"],
   employe: ["dashboard", "personnel", "mon-espace"],
@@ -117,6 +119,7 @@ export function canAccessModule(
   module: Module,
   managerPerms: ManagerPermissions = DEFAULT_MANAGER_PERMISSIONS
 ): boolean {
+  if (role === "superadmin") return false;
   if (role === "gerant") return true;
   if (role === "employe") return MODULE_ACCESS.employe.includes(module);
   if (module === "finances") return managerPerms.foodCost;

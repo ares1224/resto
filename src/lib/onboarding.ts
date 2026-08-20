@@ -7,6 +7,7 @@ export type OnboardingStep = {
 };
 
 export const ONBOARDING_STEPS: Record<Role, OnboardingStep[]> = {
+  superadmin: [],
   employe: [
     {
       title: "Bienvenue dans votre espace",

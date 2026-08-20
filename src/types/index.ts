@@ -1,4 +1,18 @@
-export type Role = "gerant" | "manager" | "employe";
+export type Role = "superadmin" | "gerant" | "manager" | "employe";
+
+export type RestaurantStatus = "pending" | "active" | "inactive";
+
+export type Restaurant = {
+  id: string;
+  name: string;
+  address: string;
+  cuisineType: string;
+  phone: string;
+  contactEmail: string;
+  status: RestaurantStatus;
+  createdAt: string;
+  emailConfirmedAt?: string;
+};
 
 export type User = {
   id: string;
@@ -6,10 +20,32 @@ export type User = {
   password: string;
   name: string;
   role: Role;
+  restaurantId?: string;
   employeeId?: string;
+  emailConfirmed?: boolean;
+  emailConfirmToken?: string;
+  emailConfirmTokenExpires?: string;
   mustChangePassword?: boolean;
   passwordSetupToken?: string;
   passwordSetupTokenExpires?: string;
+};
+
+export type PlatformNotification = {
+  id: string;
+  title: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
+  restaurantId?: string;
+};
+
+export type OutboundEmail = {
+  id: string;
+  to: string;
+  subject: string;
+  body: string;
+  createdAt: string;
+  sent: boolean;
 };
 
 export type Employee = {
@@ -411,6 +447,15 @@ export type Database = {
     locale?: string;
     setupDraft?: SetupDraft | null;
   };
+};
+
+export type PlatformDatabase = {
+  version: 2;
+  restaurants: Restaurant[];
+  superAdmins: User[];
+  tenants: Record<string, Database>;
+  platformNotifications: PlatformNotification[];
+  outboundEmails: OutboundEmail[];
 };
 
 export type SetupDraft = {

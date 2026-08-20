@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
-import { getDb } from "@/lib/db/store";
-import { isSetupComplete } from "@/lib/db/seed";
+import { getSession, homePathForRole } from "@/lib/auth";
 
 export default async function Home() {
-  const db = await getDb();
-  if (!isSetupComplete(db)) redirect("/setup");
-  redirect("/dashboard");
+  const session = await getSession();
+  if (!session) redirect("/login");
+  redirect(homePathForRole(session.role));
 }

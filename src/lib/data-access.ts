@@ -125,6 +125,7 @@ export function getNotificationsForSession(
   session: Session
 ): Notification[] {
   const allowedTypes: Record<Session["role"], Notification["type"][]> = {
+    superadmin: [],
     gerant: ["staffing", "stock", "expiry", "replacement", "planning", "compliance", "reservation", "general"],
     manager: ["staffing", "stock", "expiry", "replacement", "planning", "compliance", "reservation", "general"],
     employe: ["replacement", "planning", "general"],

@@ -47,7 +47,7 @@ export function ActiverCompteForm({ token }: { token: string }) {
       setError(data.error ?? "Erreur");
       return;
     }
-    router.push("/dashboard");
+    router.push(data.redirectTo || "/dashboard");
     router.refresh();
   }
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { requireApiRole, apiError } from "@/lib/api-auth";
-import { updateDb } from "@/lib/db/store";
+import { findUserByEmail, getPlatformDb, getRequestTenantId, updateDb } from "@/lib/db/store";
 import { logAudit } from "@/lib/audit";
 import { generateSetupToken, generateTempPassword, setupTokenExpires } from "@/lib/password";
 import type { Role } from "@/types";
@@ -19,6 +19,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const session = await requireApiRole(["gerant"]);
+    const restaurantId = await getRequestTenantId();
     const body = await request.json();
 
     if (!body.firstName?.trim() || !body.lastName?.trim() || !body.role?.trim()) {
@@ -30,8 +31,8 @@ export async function POST(request: Request) {
     const email = body.email?.trim().toLowerCase() ?? "";
 
     if (email) {
-      const dbCheck = await updateDb(() => {});
-      if (dbCheck.users.some((u) => u.email === email)) {
+      const platform = await getPlatformDb();
+      if (findUserByEmail(platform, email)) {
         return NextResponse.json({ error: "Un compte existe déjà avec cet email" }, { status: 409 });
       }
     }
@@ -72,7 +73,9 @@ export async function POST(request: Request) {
           password: tempPassword,
           name: `${body.firstName.trim()} ${body.lastName.trim()}`,
           role,
+          restaurantId,
           employeeId,
+          emailConfirmed: true,
           mustChangePassword: true,
           passwordSetupToken: setupToken,
           passwordSetupTokenExpires: setupTokenExpires(7),

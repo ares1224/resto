@@ -138,6 +138,9 @@ const EMPLOYE_NAV: NavEntry[] = [
 ];
 
 export function getNavigation(role: Session["role"], perms: ManagerPermissions): NavEntry[] {
+  if (role === "superadmin") {
+    return [{ type: "link", href: "/admin", label: "Plateforme", icon: LayoutDashboard }];
+  }
   if (role === "employe") return EMPLOYE_NAV;
   if (role === "gerant") return GERANT_NAV;
 

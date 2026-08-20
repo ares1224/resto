@@ -1,20 +1,31 @@
 import { NextResponse } from "next/server";
-import { login } from "@/lib/auth";
+import { login, LoginBlockedError, homePathForRole } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-import { getDb } from "@/lib/db/store";
 
 export async function POST(request: Request) {
   const { email, password } = await request.json();
-  const session = await login(email, password);
-  if (!session) {
-    return NextResponse.json({ error: "Identifiants invalides" }, { status: 401 });
+  try {
+    const session = await login(email, password);
+    if (!session) {
+      return NextResponse.json({ error: "Identifiants invalides" }, { status: 401 });
+    }
+    if (session.role !== "superadmin") {
+      try {
+        await logAudit(session, "login", `Connexion ${session.role}`);
+      } catch {
+        // L’audit tenant ne doit pas bloquer la connexion.
+      }
+    }
+    return NextResponse.json({
+      ok: true,
+      role: session.role,
+      mustChangePassword: session.mustChangePassword === true,
+      redirectTo: homePathForRole(session.role),
+    });
+  } catch (e) {
+    if (e instanceof LoginBlockedError) {
+      return NextResponse.json({ error: e.message }, { status: 403 });
+    }
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
-  await logAudit(session, "login", `Connexion ${session.role}`);
-  const db = await getDb();
-  const user = db.users.find((u) => u.id === session.userId);
-  return NextResponse.json({
-    ok: true,
-    role: session.role,
-    mustChangePassword: user?.mustChangePassword === true,
-  });
 }

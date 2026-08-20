@@ -23,7 +23,12 @@ import { BottomNav, type BottomNavItem } from "./layout/BottomNav";
 const SIDEBAR_EXPANDED = "16rem";
 const SIDEBAR_COLLAPSED = "4.5rem";
 
-const ROLE_LABELS = { gerant: "Gérant", manager: "Manager", employe: "Employé" };
+const ROLE_LABELS: Record<string, string> = {
+  superadmin: "Super-admin",
+  gerant: "Gérant",
+  manager: "Manager",
+  employe: "Employé",
+};
 
 export function AppShell({
   session,

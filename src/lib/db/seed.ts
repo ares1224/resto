@@ -1,7 +1,7 @@
-import type { Database } from "@/types";
+import type { Database, PlatformDatabase, User } from "@/types";
 import { DEFAULT_MANAGER_PERMISSIONS } from "@/lib/permissions";
 
-/** Base de données vide — aucune donnée métier pré-remplie. */
+/** Base de données vide d’un restaurant — aucune donnée métier pré-remplie. */
 export function seedDatabase(): Database {
   return {
     settings: {
@@ -12,7 +12,7 @@ export function seedDatabase(): Database {
       peakSlots: [],
       managerPermissions: { ...DEFAULT_MANAGER_PERMISSIONS },
       sessionTimeoutMinutes: 30,
-      setupComplete: false,
+      setupComplete: true,
       address: "",
       cuisineType: "",
       timezone: "Europe/Paris",
@@ -51,6 +51,28 @@ export function seedDatabase(): Database {
     notifications: [],
     auditLog: [],
     gerantAiChats: [],
+  };
+}
+
+export function defaultSuperAdmin(): User {
+  return {
+    id: "superadmin-1",
+    email: (process.env.SUPERADMIN_EMAIL || "admin@platform.local").trim().toLowerCase(),
+    password: process.env.SUPERADMIN_PASSWORD || "ChangeMe123!",
+    name: "Super-admin",
+    role: "superadmin",
+    emailConfirmed: true,
+  };
+}
+
+export function seedPlatform(): PlatformDatabase {
+  return {
+    version: 2,
+    restaurants: [],
+    superAdmins: [defaultSuperAdmin()],
+    tenants: {},
+    platformNotifications: [],
+    outboundEmails: [],
   };
 }
 

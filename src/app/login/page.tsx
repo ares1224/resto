@@ -1,26 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [checking, setChecking] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/setup")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.needsSetup) router.replace("/setup");
-      })
-      .finally(() => setChecking(false));
-  }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,26 +20,17 @@ export default function LoginPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
+    const data = await res.json().catch(() => ({}));
     if (res.ok) {
-      const data = await res.json();
       if (data.mustChangePassword) {
-        router.push("/mon-espace/mot-de-passe?required=1");
+        window.location.assign("/mon-espace/mot-de-passe?required=1");
       } else {
-        router.push("/dashboard");
+        window.location.assign(data.redirectTo || "/dashboard");
       }
-      router.refresh();
     } else {
-      setError("Identifiants invalides");
+      setError(data.error || "Identifiants invalides");
+      setLoading(false);
     }
-    setLoading(false);
-  }
-
-  if (checking) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F5F6FA]">
-        <p className="text-[#6B7280]">Chargement…</p>
-      </div>
-    );
   }
 
   return (
@@ -87,6 +67,12 @@ export default function LoginPage() {
             {loading ? "Connexion..." : "Se connecter"}
           </Button>
         </form>
+        <p className="mt-6 text-center text-[14px] text-[#6B7280]">
+          Nouveau restaurant ?{" "}
+          <Link href="/inscription" className="font-semibold text-[#1B3AE8] hover:underline">
+            Créer un espace
+          </Link>
+        </p>
       </div>
     </div>
   );

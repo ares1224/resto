@@ -1,7 +1,11 @@
 import { cookies } from "next/headers";
 import type { NextResponse } from "next/server";
 import type { Role, User } from "@/types";
-import { getDb } from "./db/store";
+import {
+  findUserByEmail,
+  findUserInPlatform,
+  getPlatformDb,
+} from "./db/store";
 
 export const SESSION_COOKIE = "bistrot_session";
 
@@ -17,9 +21,17 @@ export type Session = {
   email: string;
   name: string;
   role: Role;
+  restaurantId?: string;
   employeeId?: string;
   mustChangePassword?: boolean;
 };
+
+export class LoginBlockedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "LoginBlockedError";
+  }
+}
 
 export function sessionFromUser(user: User): Session {
   return {
@@ -27,6 +39,7 @@ export function sessionFromUser(user: User): Session {
     email: user.email,
     name: user.name,
     role: user.role,
+    restaurantId: user.restaurantId,
     employeeId: user.employeeId,
     mustChangePassword: user.mustChangePassword === true,
   };
@@ -43,14 +56,43 @@ export function attachSessionCookie(response: NextResponse, session: Session): N
 }
 
 export async function login(email: string, password: string): Promise<Session | null> {
-  const db = await getDb();
-  const user = db.users.find((u) => u.email === email && u.password === password);
-  if (!user) return null;
+  const platform = await getPlatformDb();
+  const found = findUserByEmail(platform, email);
+  if (!found || found.user.password !== password) return null;
 
-  const session = sessionFromUser(user);
+  const { user } = found;
 
+  if (user.role === "superadmin") {
+    if (user.emailConfirmed === false) {
+      throw new LoginBlockedError("Confirmez votre adresse email avant de vous connecter.");
+    }
+    const session = sessionFromUser(user);
+    await writeSessionCookie(session);
+    return session;
+  }
+
+  const restaurantId = user.restaurantId || found.restaurantId;
+  const restaurant = platform.restaurants.find((r) => r.id === restaurantId);
+  if (!restaurant) return null;
+
+  if (user.emailConfirmed === false) {
+    throw new LoginBlockedError(
+      "Confirmez votre adresse email pour activer l’espace de votre restaurant."
+    );
+  }
+  if (restaurant.status === "pending") {
+    throw new LoginBlockedError(
+      "Votre espace n’est pas encore activé. Confirmez d’abord votre email."
+    );
+  }
+  if (restaurant.status === "inactive") {
+    throw new LoginBlockedError(
+      "Ce restaurant est désactivé. Contactez le support de la plateforme."
+    );
+  }
+
+  const session = sessionFromUser({ ...user, restaurantId });
   await writeSessionCookie(session);
-
   return session;
 }
 
@@ -79,26 +121,23 @@ export async function requireSession(): Promise<Session> {
 export async function refreshSessionCookie(): Promise<void> {
   const session = await getSession();
   if (!session) return;
-  const db = await getDb();
-  const user = db.users.find((u) => u.id === session.userId);
+  const platform = await getPlatformDb();
+  const user = findUserInPlatform(platform, session.userId);
   if (!user) return;
 
-  const updated: Session = {
-    userId: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role,
-    employeeId: user.employeeId,
-    mustChangePassword: user.mustChangePassword === true,
-  };
-
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, JSON.stringify(updated), SESSION_COOKIE_OPTIONS);
+  cookieStore.set(SESSION_COOKIE, JSON.stringify(sessionFromUser(user)), SESSION_COOKIE_OPTIONS);
 }
 
 export async function getCurrentUser(): Promise<User | null> {
   const session = await getSession();
   if (!session) return null;
-  const db = await getDb();
-  return db.users.find((u) => u.id === session.userId) ?? null;
+  const platform = await getPlatformDb();
+  return findUserInPlatform(platform, session.userId) ?? null;
+}
+
+export function homePathForRole(role: Role): string {
+  if (role === "superadmin") return "/admin";
+  if (role === "employe") return "/dashboard";
+  return "/dashboard";
 }
