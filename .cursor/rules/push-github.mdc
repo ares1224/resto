@@ -1,0 +1,14 @@
+---
+description: Chaque modification doit être commitée et poussée sur GitHub
+alwaysApply: true
+---
+
+# Push GitHub obligatoire
+
+Après toute modification de code dans ce dépôt :
+
+1. Committer les fichiers concernés (message en anglais, style existant du repo).
+2. Pousser immédiatement sur `origin` (branche courante, en pratique `main`).
+3. Remote : `https://github.com/ares1224/resto.git`
+
+Ne pas laisser de changements locaux non poussés en fin de tâche. L’utilisateur a demandé explicitement commit + push à chaque modification.
