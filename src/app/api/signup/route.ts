@@ -4,7 +4,11 @@ import {
   findUserByEmail,
   updatePlatformDb,
 } from "@/lib/db/store";
-import { attachSessionCookie, sessionFromUser } from "@/lib/auth";
+import {
+  attachSessionCookie,
+  homePathForRole,
+  login,
+} from "@/lib/auth";
 import type { Restaurant, User } from "@/types";
 
 export const runtime = "nodejs";
@@ -137,10 +141,19 @@ export async function POST(request: Request) {
     throw e;
   }
 
-  const session = sessionFromUser(user);
+  const session = await login(email, password);
+  if (!session) {
+    return NextResponse.json(
+      { error: "Compte créé mais connexion automatique impossible" },
+      { status: 500 }
+    );
+  }
+
+  const redirectTo = homePathForRole(session.role);
   const res = NextResponse.json({
     ok: true,
-    redirectTo: "/dashboard",
+    role: session.role,
+    redirectTo,
   });
   return attachSessionCookie(res, session);
 }

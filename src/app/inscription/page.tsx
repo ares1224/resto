@@ -35,6 +35,7 @@ export default function InscriptionPage() {
     setLoading(true);
     const res = await fetch("/api/signup", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         restaurantName,
