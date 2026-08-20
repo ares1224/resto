@@ -4,6 +4,11 @@ import { CONFIRM_TOKEN_HOURS } from "@/lib/mail";
 import { sendConfirmationEmail } from "@/lib/email";
 import type { User } from "@/types";
 
+type SignupSnapshot = {
+  user: User;
+  restaurantName: string;
+};
+
 export function confirmTokenExpiresAt(): string {
   return new Date(Date.now() + CONFIRM_TOKEN_HOURS * 60 * 60 * 1000).toISOString();
 }
@@ -81,7 +86,9 @@ export async function resendGerantConfirmation(email: string): Promise<{ ok: tru
     return { error: "Impossible de préparer l’email", status: 500 };
   }
 
-  const sent = await sendGerantConfirmation(found.user, restaurant.name);
+  const snapshot = { user: found.user, restaurantName: restaurant.name } as SignupSnapshot;
+  const snap = snapshot as SignupSnapshot;
+  const sent = await sendGerantConfirmation(snap.user, snap.restaurantName);
   if (!sent.sent) {
     return { error: sent.error || "Impossible d’envoyer l’email pour le moment", status: 502 };
   }
