@@ -4,7 +4,7 @@ import {
   getPlatformDb,
   updateTenantDb,
 } from "@/lib/db/store";
-import { isTokenValid } from "@/lib/password";
+import { hashPassword, isTokenValid } from "@/lib/password";
 import { login } from "@/lib/auth";
 import { apiError } from "@/lib/api-auth";
 
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
       const user = db.users.find((u) => u.passwordSetupToken === token);
       if (!user) throw new Error("INVALID_TOKEN");
       email = user.email;
-      user.password = password;
+      user.password = hashPassword(String(password));
       user.mustChangePassword = false;
       user.emailConfirmed = true;
       user.passwordSetupToken = undefined;

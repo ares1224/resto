@@ -11,12 +11,16 @@ export default async function MotDePassePage({
   const session = await getSession();
   if (!session) redirect("/login");
   const params = await searchParams;
-  const required = params.required === "1";
+  const required = params.required === "1" || session.mustChangePassword === true;
 
   return (
     <div className="space-y-6">
-      <Link href="/dashboard" className="text-sm text-amber-700 hover:underline">← Mon espace</Link>
-      <h1 className="text-2xl font-bold text-amber-950">Mon mot de passe</h1>
+      {!required && (
+        <Link href="/dashboard" className="text-sm text-amber-700 hover:underline">← Mon espace</Link>
+      )}
+      <h1 className="text-2xl font-bold text-amber-950">
+        {required ? "Changement de mot de passe obligatoire" : "Mon mot de passe"}
+      </h1>
       <PasswordChangeForm required={required} />
     </div>
   );

@@ -43,7 +43,7 @@ export function PasswordChangeForm({ required }: { required?: boolean }) {
     <Card title={required ? "Changez votre mot de passe" : "Changer mon mot de passe"}>
       {required && (
         <p className="mb-4 text-sm text-amber-900">
-          Pour des raisons de sécurité, définissez un mot de passe personnel avant de continuer.
+          Pour des raisons de sécurité, vous devez définir un mot de passe personnel avant d’accéder à votre espace. Cette étape est obligatoire.
         </p>
       )}
       <form onSubmit={submit} className="grid max-w-md gap-3">

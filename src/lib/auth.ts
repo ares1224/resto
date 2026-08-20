@@ -1,11 +1,8 @@
 import { cookies } from "next/headers";
 import type { NextResponse } from "next/server";
 import type { Role, User } from "@/types";
-import {
-  findUserByEmail,
-  findUserInPlatform,
-  getPlatformDb,
-} from "./db/store";
+import { findUserByEmail, findUserInPlatform, getPlatformDb } from "./db/store";
+import { verifyPassword } from "./password";
 
 export const SESSION_COOKIE = "bistrot_session";
 
@@ -59,7 +56,7 @@ export function attachSessionCookie(response: NextResponse, session: Session): N
 export async function login(email: string, password: string): Promise<Session | null> {
   const platform = await getPlatformDb();
   const found = findUserByEmail(platform, email);
-  if (!found || found.user.password !== password) return null;
+  if (!found || !verifyPassword(password, found.user.password)) return null;
 
   const { user } = found;
 

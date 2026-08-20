@@ -7,9 +7,8 @@ import { Card } from "@/components/ui/Card";
 import { toPublicError } from "@/lib/public-error";
 
 type CreateResult = {
-  tempPassword?: string;
-  activationPath?: string;
   message?: string;
+  emailSent?: boolean;
 };
 
 export function EmployeeCreateForm() {
@@ -55,9 +54,8 @@ export function EmployeeCreateForm() {
     }
 
     setResult({
-      tempPassword: data.tempPassword,
-      activationPath: data.activationPath,
       message: data.message,
+      emailSent: data.emailSent === true,
     });
 
     router.refresh();
@@ -83,32 +81,16 @@ export function EmployeeCreateForm() {
     return <Button size="lg" onClick={() => setOpen(true)}>Ajouter un employé</Button>;
   }
 
-  const activationUrl =
-    typeof window !== "undefined" && result?.activationPath
-      ? `${window.location.origin}${result.activationPath}`
-      : result?.activationPath ?? "";
-
   return (
     <Card title="Nouvelle fiche employé">
       {result ? (
         <div className="space-y-4">
           <p className="font-semibold text-green-900">Employé enregistré avec succès.</p>
           <p className="text-sm text-amber-900">{result.message}</p>
-          {result.tempPassword && (
-            <div className="rounded-lg bg-amber-50 p-4 text-sm">
-              <p className="font-bold">Mot de passe temporaire (à transmettre à l&apos;employé) :</p>
-              <p className="mt-1 font-mono text-lg">{result.tempPassword}</p>
-              <p className="mt-2 text-xs text-stone-600">
-                L&apos;employé pourra le changer dès sa première connexion ou via « Mon mot de passe ».
-              </p>
-            </div>
-          )}
-          {activationUrl && (
-            <div className="rounded-lg bg-stone-100 p-4 text-sm">
-              <p className="font-bold">Lien d&apos;activation (choix du mot de passe personnel) :</p>
-              <p className="mt-1 break-all font-mono text-xs">{activationUrl}</p>
-              <p className="mt-2 text-xs text-stone-600">Valide 7 jours. Une notification a aussi été envoyée à l&apos;employé.</p>
-            </div>
+          {result.emailSent && (
+            <p className="text-sm text-stone-600">
+              L’employé recevra ses identifiants par email et devra changer son mot de passe à la première connexion.
+            </p>
           )}
           <Button onClick={closeAndReset}>Fermer</Button>
         </div>
@@ -126,7 +108,7 @@ export function EmployeeCreateForm() {
             <option value="manager">Compte manager</option>
           </select>
           <p className="text-xs text-stone-600 sm:col-span-2">
-            Un mot de passe temporaire et un lien d&apos;activation seront générés automatiquement. L&apos;employé recevra une notification in-app.
+            Un mot de passe temporaire sera généré et envoyé automatiquement par email. L’employé devra le changer à sa première connexion.
           </p>
           {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
           <div className="flex gap-2 sm:col-span-2">

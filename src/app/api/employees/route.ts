@@ -3,7 +3,8 @@ import { revalidatePath } from "next/cache";
 import { requireApiRole, apiError } from "@/lib/api-auth";
 import { findUserByEmail, getPlatformDb, getRequestTenantId, updateDb } from "@/lib/db/store";
 import { logAudit } from "@/lib/audit";
-import { generateSetupToken, generateTempPassword, setupTokenExpires } from "@/lib/password";
+import { generateTempPassword, hashPassword } from "@/lib/password";
+import { sendEmployeeInviteEmail } from "@/lib/email";
 import type { Role } from "@/types";
 
 export async function GET() {
@@ -39,10 +40,9 @@ export async function POST(request: Request) {
 
     let userId: string | undefined;
     let tempPassword: string | undefined;
-    let setupToken: string | undefined;
-    let activationPath: string | undefined;
+    let createdLogin = false;
 
-    await updateDb((db) => {
+    const db = await updateDb((db) => {
       db.employees.push({
         id: employeeId,
         firstName: body.firstName.trim(),
@@ -62,30 +62,27 @@ export async function POST(request: Request) {
 
       if (email) {
         userId = crypto.randomUUID();
-        tempPassword = generateTempPassword();
-        setupToken = generateSetupToken();
-        activationPath = `/activer-compte?token=${setupToken}`;
+        tempPassword = generateTempPassword(10);
         const role: Role = body.loginRole === "manager" ? "manager" : "employe";
 
         db.users.push({
           id: userId,
           email,
-          password: tempPassword,
+          password: hashPassword(tempPassword),
           name: `${body.firstName.trim()} ${body.lastName.trim()}`,
           role,
           restaurantId,
           employeeId,
           emailConfirmed: true,
           mustChangePassword: true,
-          passwordSetupToken: setupToken,
-          passwordSetupTokenExpires: setupTokenExpires(7),
         });
+        createdLogin = true;
 
         db.notifications.unshift({
           id: crypto.randomUUID(),
           type: "general",
-          title: "Activez votre compte",
-          message: `Bienvenue ! Définissez votre mot de passe personnel via « Mon mot de passe » ou le lien d'activation envoyé par le gérant. Mot de passe temporaire : ${tempPassword}`,
+          title: "Bienvenue",
+          message: "Votre compte a été créé. Consultez votre email pour vos identifiants, puis changez votre mot de passe à la première connexion.",
           severity: "info",
           read: false,
           createdAt: new Date().toISOString(),
@@ -94,6 +91,17 @@ export async function POST(request: Request) {
         });
       }
     });
+
+    let emailSent = false;
+    if (createdLogin && email && tempPassword) {
+      emailSent = await sendEmployeeInviteEmail({
+        to: email,
+        employeeFirstName: String(body.firstName).trim(),
+        gerantName: session.name,
+        restaurantName: db.settings.restaurantName || "votre restaurant",
+        tempPassword,
+      });
+    }
 
     revalidatePath("/personnel/employes");
     revalidatePath("/personnel");
@@ -108,10 +116,11 @@ export async function POST(request: Request) {
       ok: true,
       id: employeeId,
       userId,
-      tempPassword,
-      activationPath,
+      emailSent,
       message: email
-        ? "Employé enregistré. Un message d'activation a été envoyé (notification in-app). Communiquez le mot de passe temporaire si besoin."
+        ? emailSent
+          ? "Employé enregistré. Un email avec les identifiants a été envoyé."
+          : "Employé enregistré. L'email n'a pas pu être envoyé, veuillez réessayer."
         : "Employé enregistré sans accès connexion (email non renseigné).",
     });
   } catch (e) {

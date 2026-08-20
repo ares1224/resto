@@ -10,6 +10,7 @@ import {
   login,
 } from "@/lib/auth";
 import { GENERIC_USER_ERROR } from "@/lib/public-error";
+import { hashPassword } from "@/lib/password";
 import type { Restaurant, User } from "@/types";
 
 export const runtime = "nodejs";
@@ -84,7 +85,7 @@ export async function POST(request: Request) {
   const user: User = {
     id: userId,
     email,
-    password,
+    password: hashPassword(password),
     name: gerantName,
     role: "gerant",
     restaurantId,

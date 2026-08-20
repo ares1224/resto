@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession, refreshSessionCookie } from "@/lib/auth";
 import { updateDb } from "@/lib/db/store";
 import { apiError } from "@/lib/api-auth";
+import { hashPassword, verifyPassword } from "@/lib/password";
 
 export async function POST(request: Request) {
   try {
@@ -20,10 +21,10 @@ export async function POST(request: Request) {
 
     await updateDb((db) => {
       const user = db.users.find((u) => u.id === session.userId);
-      if (!user || user.password !== currentPassword) {
+      if (!user || !verifyPassword(String(currentPassword), user.password)) {
         throw new Error("BAD_PASSWORD");
       }
-      user.password = newPassword;
+      user.password = hashPassword(String(newPassword));
       user.mustChangePassword = false;
       user.passwordSetupToken = undefined;
       user.passwordSetupTokenExpires = undefined;

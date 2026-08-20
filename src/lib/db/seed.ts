@@ -1,5 +1,6 @@
 import type { Database, PlatformDatabase, User } from "@/types";
 import { DEFAULT_MANAGER_PERMISSIONS } from "@/lib/permissions";
+import { hashPassword } from "@/lib/password";
 
 /** Base de données vide d’un restaurant — aucune donnée métier pré-remplie. */
 export function seedDatabase(): Database {
@@ -58,7 +59,7 @@ export function defaultSuperAdmin(): User {
   return {
     id: "superadmin-1",
     email: (process.env.SUPERADMIN_EMAIL || "admin@platform.local").trim().toLowerCase(),
-    password: process.env.SUPERADMIN_PASSWORD || "ChangeMe123!",
+    password: hashPassword(process.env.SUPERADMIN_PASSWORD || "ChangeMe123!"),
     name: "Super-admin",
     role: "superadmin",
     emailConfirmed: true,
