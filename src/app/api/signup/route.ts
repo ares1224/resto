@@ -4,7 +4,8 @@ import {
   findUserByEmail,
   updatePlatformDb,
 } from "@/lib/db/store";
-import { confirmTokenExpiresAt, sendGerantConfirmation } from "@/lib/signup";
+import { confirmTokenExpiresAt } from "@/lib/signup";
+import { sendConfirmationEmail } from "@/lib/email";
 import type { Restaurant, User } from "@/types";
 
 export const runtime = "nodejs";
@@ -140,21 +141,15 @@ export async function POST(request: Request) {
     throw e;
   }
 
-  const sent = await sendGerantConfirmation(user, restaurantName);
-  if (!sent.sent) {
+  try {
+    await sendConfirmationEmail(email, confirmToken);
+  } catch (error) {
+    console.error("Erreur envoi email inscription:", error);
     return NextResponse.json(
-      {
-        error: "L'envoi de l'email a échoué, veuillez réessayer",
-        accountCreated: true,
-        email,
-      },
-      { status: 502 }
+      { error: "Échec de l'envoi de l'email" },
+      { status: 500 }
     );
   }
 
-  return NextResponse.json({
-    ok: true,
-    emailSent: true,
-    email,
-  });
+  return NextResponse.json({ message: "Email de confirmation envoyé" });
 }

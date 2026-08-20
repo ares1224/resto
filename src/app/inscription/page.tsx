@@ -24,7 +24,7 @@ export default function InscriptionPage() {
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState<{ email: string; sendFailed?: boolean } | null>(null);
+  const [done, setDone] = useState<{ email: string } | null>(null);
   const [resendState, setResendState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [resendMessage, setResendMessage] = useState("");
 
@@ -53,19 +53,12 @@ export default function InscriptionPage() {
       }),
     });
     const data = await res.json().catch(() => ({}));
-    if (res.ok && data.emailSent) {
+    if (res.ok) {
       setDone({ email });
       setLoading(false);
       return;
     }
-    if (data.accountCreated) {
-      setDone({ email: data.email || email, sendFailed: true });
-      setResendState("error");
-      setResendMessage("L'envoi de l'email a échoué, veuillez réessayer");
-      setLoading(false);
-      return;
-    }
-    setError(data.error || "L'envoi de l'email a échoué, veuillez réessayer");
+    setError(data.error || "Échec de l'envoi de l'email");
     setLoading(false);
   }
 
@@ -96,19 +89,10 @@ export default function InscriptionPage() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1B3AE8] text-lg font-bold text-white">
             R
           </div>
-          <h1 className="text-2xl font-bold text-[#1A1D23]">
-            {done.sendFailed ? "Email non envoyé" : "Vérifiez votre boîte mail"}
-          </h1>
+          <h1 className="text-2xl font-bold text-[#1A1D23]">Vérifiez votre boîte mail</h1>
           <p className="mt-3 text-[14px] leading-relaxed text-[#374151]">
-            {done.sendFailed
-              ? "L'envoi de l'email a échoué, veuillez réessayer"
-              : <>Un email de confirmation a été envoyé à <strong>{done.email}</strong>. Vérifiez votre boîte mail pour activer votre compte.</>}
+            Un email de confirmation a été envoyé à votre adresse. Vérifiez votre boîte mail pour activer votre compte.
           </p>
-          {!done.sendFailed && (
-            <p className="mt-3 text-[13px] text-[#6B7280]">
-              Pensez à regarder les courriers indésirables. Le lien est valable 24 heures.
-            </p>
-          )}
           {resendMessage && (
             <p className={`mt-4 text-sm ${resendState === "error" ? "text-red-600" : "text-emerald-700"}`}>
               {resendMessage}

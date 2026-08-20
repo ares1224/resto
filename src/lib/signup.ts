@@ -1,45 +1,35 @@
 import { findUserByConfirmToken, findUserByEmail, updatePlatformDb } from "@/lib/db/store";
 import { isTokenValid } from "@/lib/password";
-import {
-  CONFIRM_TOKEN_HOURS,
-  confirmationSubject,
-  confirmationUrl,
-  sendConfirmationEmail,
-} from "@/lib/mail";
+import { CONFIRM_TOKEN_HOURS } from "@/lib/mail";
+import { sendConfirmationEmail } from "@/lib/email";
 import type { User } from "@/types";
 
 export function confirmTokenExpiresAt(): string {
   return new Date(Date.now() + CONFIRM_TOKEN_HOURS * 60 * 60 * 1000).toISOString();
 }
 
-function firstNameFromUser(user: User): string {
-  return user.name.trim().split(/\s+/)[0] || user.name;
-}
-
 export async function sendGerantConfirmation(user: User, restaurantName: string): Promise<{ sent: boolean; error?: string }> {
   if (!user.emailConfirmToken) {
-    return { sent: false, error: "Aucun lien de confirmation à envoyer" };
+    return { sent: false, error: "Échec de l'envoi de l'email" };
   }
-  const result = await sendConfirmationEmail({
-    to: user.email,
-    firstName: firstNameFromUser(user),
-    restaurantName,
-    confirmUrl: confirmationUrl(user.emailConfirmToken),
-  });
-
-  await updatePlatformDb((platform) => {
-    platform.outboundEmails.unshift({
-      id: crypto.randomUUID(),
-      to: user.email,
-      subject: confirmationSubject(),
-      body: result.sent ? "Email de confirmation envoyé." : `Échec d’envoi : ${result.error ?? "inconnu"}`,
-      createdAt: new Date().toISOString(),
-      sent: result.sent,
+  try {
+    await sendConfirmationEmail(user.email, user.emailConfirmToken);
+    await updatePlatformDb((platform) => {
+      platform.outboundEmails.unshift({
+        id: crypto.randomUUID(),
+        to: user.email,
+        subject: "Confirmez votre adresse email",
+        body: `Confirmation envoyée pour ${restaurantName}.`,
+        createdAt: new Date().toISOString(),
+        sent: true,
+      });
+      platform.outboundEmails = platform.outboundEmails.slice(0, 50);
     });
-    platform.outboundEmails = platform.outboundEmails.slice(0, 50);
-  });
-
-  return result;
+    return { sent: true };
+  } catch (error) {
+    console.error("Erreur envoi email:", error);
+    return { sent: false, error: "Échec de l'envoi de l'email" };
+  }
 }
 
 export async function resendGerantConfirmation(email: string): Promise<{ ok: true } | { error: string; status: number }> {
