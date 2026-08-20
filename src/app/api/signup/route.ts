@@ -9,6 +9,7 @@ import {
   homePathForRole,
   login,
 } from "@/lib/auth";
+import { GENERIC_USER_ERROR } from "@/lib/public-error";
 import type { Restaurant, User } from "@/types";
 
 export const runtime = "nodejs";
@@ -138,17 +139,15 @@ export async function POST(request: Request) {
         { status: 409 }
       );
     }
-    const message = e instanceof Error ? e.message : "";
-    if (message.includes("Stockage persistant indisponible")) {
-      return NextResponse.json({ error: message }, { status: 503 });
-    }
-    throw e;
+    console.error("Signup error:", e);
+    return NextResponse.json({ error: GENERIC_USER_ERROR }, { status: 500 });
   }
 
   const session = await login(email, password);
   if (!session) {
+    console.error("Signup auto-login returned null");
     return NextResponse.json(
-      { error: "Compte créé mais connexion automatique impossible" },
+      { error: GENERIC_USER_ERROR },
       { status: 500 }
     );
   }

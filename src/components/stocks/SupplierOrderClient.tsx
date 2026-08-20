@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import type { SupplierOrderDraftLine } from "@/types";
+import { toPublicError } from "@/lib/public-error";
 
 type UrgentSupplier = {
   id: string;
@@ -102,7 +103,7 @@ export function SupplierOrderClient() {
     setBusy(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Impossible de préparer la commande");
+      setError(toPublicError(data.error, "Impossible de préparer la commande"));
       return;
     }
     const draft = (await res.json()) as DraftView;
@@ -158,7 +159,7 @@ export function SupplierOrderClient() {
     setBusy(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Actualisation impossible");
+      setError(toPublicError(data.error, "Actualisation impossible"));
       return;
     }
     const draft = (await res.json()) as DraftView;
@@ -194,7 +195,7 @@ export function SupplierOrderClient() {
     setBusy(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Envoi impossible");
+      setError(toPublicError(data.error, "Envoi impossible"));
       return;
     }
     const data = await res.json();

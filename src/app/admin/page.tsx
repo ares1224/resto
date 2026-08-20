@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { toPublicError } from "@/lib/public-error";
 
 type RestaurantRow = {
   id: string;
@@ -62,7 +63,7 @@ export default function AdminPage() {
     const res = await fetch("/api/admin/restaurants");
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setError(data.error || "Impossible de charger les restaurants");
+      setError(toPublicError(data.error, "Impossible de charger les restaurants"));
       return;
     }
     setRestaurants(data.restaurants ?? []);
@@ -84,7 +85,7 @@ export default function AdminPage() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setError(data.error || "Mise à jour impossible");
+      setError(toPublicError(data.error, "Mise à jour impossible"));
     } else {
       await load();
     }

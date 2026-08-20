@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PasswordInput } from "@/components/ui/PasswordInput";
+import { toPublicError } from "@/lib/public-error";
 
 export function PasswordChangeForm({ required }: { required?: boolean }) {
   const router = useRouter();
@@ -31,7 +32,7 @@ export function PasswordChangeForm({ required }: { required?: boolean }) {
     const data = await res.json();
     setLoading(false);
     if (!res.ok) {
-      setError(data.error ?? "Erreur");
+      setError(toPublicError(data.error));
       return;
     }
     setDone(true);

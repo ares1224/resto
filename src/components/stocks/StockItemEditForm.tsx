@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import type { StockFieldDefinition, StockItem } from "@/types";
+import { toPublicError } from "@/lib/public-error";
 
 type SupplierOption = { id: string; name: string };
 
@@ -72,7 +73,7 @@ export function StockItemEditForm({
     setLoading(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Erreur lors de la modification");
+      setError(toPublicError(data.error, "Erreur lors de la modification"));
       return;
     }
     window.location.reload();

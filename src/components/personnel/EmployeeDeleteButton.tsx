@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { toPublicError } from "@/lib/public-error";
 
 export function EmployeeDeleteButton({
   employeeId,
@@ -25,7 +26,7 @@ export function EmployeeDeleteButton({
 
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error ?? "Erreur lors de la suppression");
+      setError(toPublicError(data.error, "Erreur lors de la suppression"));
       return;
     }
 

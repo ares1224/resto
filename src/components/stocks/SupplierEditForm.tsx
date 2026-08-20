@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import type { Supplier } from "@/types";
+import { toPublicError } from "@/lib/public-error";
 
 type Props = {
   supplier: Supplier;
@@ -50,7 +51,7 @@ export function SupplierEditForm({
     setLoading(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Erreur lors de la modification");
+      setError(toPublicError(data.error, "Erreur lors de la modification"));
       return;
     }
     window.location.reload();

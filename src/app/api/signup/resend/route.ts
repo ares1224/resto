@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { resendGerantConfirmation } from "@/lib/signup";
+import { toPublicError } from "@/lib/public-error";
 
 export const runtime = "nodejs";
 
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
       result.status === 502
         ? "L'envoi de l'email a échoué, veuillez réessayer"
         : result.error;
-    return NextResponse.json({ error: message }, { status: result.status });
+    return NextResponse.json({ error: toPublicError(message) }, { status: result.status });
   }
   return NextResponse.json({ ok: true });
 }

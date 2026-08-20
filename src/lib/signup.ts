@@ -3,6 +3,7 @@ import { isTokenValid } from "@/lib/password";
 import { CONFIRM_TOKEN_HOURS } from "@/lib/mail";
 import { sendConfirmationEmail } from "@/lib/email";
 import type { User } from "@/types";
+import { GENERIC_USER_ERROR } from "@/lib/public-error";
 
 type SignupSnapshot = {
   user: User;
@@ -74,7 +75,8 @@ export async function resendGerantConfirmation(email: string): Promise<{ ok: tru
     if (e instanceof Error && e.message === "TOO_SOON") {
       return { error: "Un email vient d’être envoyé. Réessayez dans une minute.", status: 429 };
     }
-    throw e;
+    console.error("Resend confirmation error:", e);
+    return { error: GENERIC_USER_ERROR, status: 500 };
   }
 
   const platform = await getPlatformDb();
@@ -136,6 +138,7 @@ export async function confirmSignupEmail(token: string): Promise<{ ok: true } | 
     if (e instanceof Error && e.message === "INVALID_TOKEN") {
       return { error: "Lien expiré ou déjà utilisé" };
     }
-    throw e;
+    console.error("Confirm email error:", e);
+    return { error: GENERIC_USER_ERROR };
   }
 }

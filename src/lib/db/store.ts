@@ -204,14 +204,7 @@ async function ensureDataFile(): Promise<void> {
   }
 }
 
-async function savePlatform(db: PlatformDatabase): Promise<void> {
-  cache = db;
-  const content = JSON.stringify(db, null, 2);
-  if (useBlobStorage()) {
-    await writeBlobJson(content);
-    cacheMtimeMs = Date.now();
-    return;
-  }
+async function saveToFilesystem(content: string): Promise<void> {
   await fs.mkdir(DATA_DIR, { recursive: true });
   const tmp = path.join(DATA_DIR, `restaurant.${process.pid}.${Date.now()}.tmp`);
   await fs.writeFile(tmp, content, "utf-8");
@@ -233,19 +226,20 @@ async function savePlatform(db: PlatformDatabase): Promise<void> {
   cacheMtimeMs = await getFileMtime();
 }
 
-async function readPlatformFromDisk(): Promise<PlatformDatabase> {
+async function savePlatform(db: PlatformDatabase): Promise<void> {
+  cache = db;
+  const content = JSON.stringify(db, null, 2);
   if (useBlobStorage()) {
-    const raw = await readBlobJson();
-    if (!raw) {
-      const platform = seedPlatform();
-      await savePlatform(platform);
-      return platform;
+    const wrote = await writeBlobJson(content);
+    if (wrote) {
+      cacheMtimeMs = Date.now();
+      return;
     }
-    const { platform, migrated } = migrateToPlatform(JSON.parse(raw));
-    if (migrated) await savePlatform(platform);
-    return platform;
   }
+  await saveToFilesystem(content);
+}
 
+async function readFromFilesystem(): Promise<PlatformDatabase> {
   await ensureDataFile();
   let lastError: unknown;
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -261,6 +255,18 @@ async function readPlatformFromDisk(): Promise<PlatformDatabase> {
     }
   }
   throw lastError;
+}
+
+async function readPlatformFromDisk(): Promise<PlatformDatabase> {
+  if (useBlobStorage()) {
+    const raw = await readBlobJson();
+    if (raw) {
+      const { platform, migrated } = migrateToPlatform(JSON.parse(raw));
+      if (migrated) await savePlatform(platform);
+      return platform;
+    }
+  }
+  return readFromFilesystem();
 }
 
 async function getFileMtime(): Promise<number> {

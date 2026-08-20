@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { PasswordInput } from "@/components/ui/PasswordInput";
+import { toPublicError } from "@/lib/public-error";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -29,7 +30,7 @@ export default function LoginPage() {
         window.location.assign(data.redirectTo || "/dashboard");
       }
     } else {
-      setError(data.error || "Identifiants invalides");
+      setError(toPublicError(data.error, "Identifiants invalides"));
       setLoading(false);
     }
   }

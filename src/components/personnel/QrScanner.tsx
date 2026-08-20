@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { PUNCTUALITY_LABELS } from "@/lib/timeclock";
+import { toPublicError } from "@/lib/public-error";
 
 export function QrScanner() {
   const [scanning, setScanning] = useState(false);
@@ -47,7 +48,7 @@ export function QrScanner() {
             });
             const data = await res.json();
             if (!res.ok) {
-              setError(data.error ?? "Scan échoué");
+              setError(toPublicError(data.error, "Scan échoué"));
             } else {
               setLastResult(data.result);
               setError("");

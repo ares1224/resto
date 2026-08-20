@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { toPublicError } from "@/lib/public-error";
 
 export function SupplierDeleteButton({
   supplierId,
@@ -27,7 +28,7 @@ export function SupplierDeleteButton({
     setLoading(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Impossible de supprimer");
+      setError(toPublicError(data.error, "Impossible de supprimer"));
       return;
     }
     window.location.reload();

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { toPublicError } from "@/lib/public-error";
 
 export function ConfirmResendForm() {
   const [email, setEmail] = useState("");
@@ -22,7 +23,7 @@ export function ConfirmResendForm() {
     const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setError(data.error || "Impossible de renvoyer l’email");
+      setError(toPublicError(data.error, "Impossible de renvoyer l’email"));
       return;
     }
     setMessage("Un nouvel email de confirmation a été envoyé.");

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import type { DeliveryNoteParseResult, ParsedDeliveryLine } from "@/lib/ai/delivery-note-parser";
+import { toPublicError } from "@/lib/public-error";
 
 type SupplierOption = { id: string; name: string };
 type StockOption = { id: string; name: string };
@@ -91,7 +92,7 @@ export function DeliveryNoteImportPanel({ suppliers, stockItems }: Props) {
     setParsing(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Analyse impossible");
+      setError(toPublicError(data.error, "Analyse impossible"));
       return;
     }
     const result = (await res.json()) as DeliveryNoteParseResult;
@@ -143,7 +144,7 @@ export function DeliveryNoteImportPanel({ suppliers, stockItems }: Props) {
     setApplying(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Mise à jour impossible");
+      setError(toPublicError(data.error, "Mise à jour impossible"));
       return;
     }
     const data = await res.json();

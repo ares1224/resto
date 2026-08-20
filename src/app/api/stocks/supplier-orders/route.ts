@@ -7,6 +7,7 @@ import {
   rebuildDraftMessage,
 } from "@/lib/ai/restock-alerts";
 import { logAudit } from "@/lib/audit";
+import { toPublicError } from "@/lib/public-error";
 import type { SupplierOrderDraftLine } from "@/types";
 
 function enrichDraft(
@@ -199,7 +200,7 @@ export async function POST(request: Request) {
       });
 
       if (!result.ok) {
-        return NextResponse.json({ error: result.error }, { status: 400 });
+        return NextResponse.json({ error: toPublicError(result.error) }, { status: 400 });
       }
 
       await logAudit(session, "supplier_order_sent", `Commande ${body.id} → ${result.sentTo}`);

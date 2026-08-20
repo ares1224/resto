@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { PasswordInput } from "@/components/ui/PasswordInput";
+import { toPublicError } from "@/lib/public-error";
 
 export function ActiverCompteForm({ token }: { token: string }) {
   const router = useRouter();
@@ -44,7 +45,7 @@ export function ActiverCompteForm({ token }: { token: string }) {
     const data = await res.json();
     setLoading(false);
     if (!res.ok) {
-      setError(data.error ?? "Erreur");
+      setError(toPublicError(data.error));
       return;
     }
     router.push(data.redirectTo || "/dashboard");

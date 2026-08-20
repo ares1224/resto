@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { confirmSignupEmail } from "@/lib/signup";
 import { ConfirmResendForm } from "./ConfirmResendForm";
+import { toPublicError } from "@/lib/public-error";
 
 export default async function ConfirmerEmailPage({
   searchParams,
@@ -34,7 +35,9 @@ export default async function ConfirmerEmailPage({
           <>
             <h1 className="text-2xl font-bold text-[#1A1D23]">Lien invalide</h1>
             <p className="mt-3 text-[14px] text-[#374151]">
-              {"error" in result ? result.error : "Ce lien de confirmation n’est plus valable."}
+              {"error" in result
+                ? toPublicError(result.error, "Ce lien de confirmation n’est plus valable.")
+                : "Ce lien de confirmation n’est plus valable."}
               {" "}Vous pouvez demander un nouveau lien, valable 24 heures.
             </p>
             <ConfirmResendForm />

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { Session } from "@/lib/auth";
 import { getSession } from "@/lib/auth";
 import { getDb, TenantError } from "@/lib/db/store";
+import { GENERIC_USER_ERROR, toPublicError } from "@/lib/public-error";
 import {
   hasPermission,
   DEFAULT_MANAGER_PERMISSIONS,
@@ -48,11 +49,15 @@ export async function requireSuperAdmin(): Promise<Session> {
 }
 
 export function apiError(error: unknown) {
+  console.error(error);
   if (error instanceof ForbiddenError) {
-    return NextResponse.json({ error: error.message }, { status: 403 });
+    return NextResponse.json({ error: GENERIC_USER_ERROR }, { status: 403 });
   }
   if (error instanceof TenantError) {
-    return NextResponse.json({ error: error.message }, { status: error.status });
+    return NextResponse.json(
+      { error: toPublicError(error.message) },
+      { status: error.status }
+    );
   }
-  return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  return NextResponse.json({ error: GENERIC_USER_ERROR }, { status: 500 });
 }

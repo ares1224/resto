@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { PasswordInput } from "@/components/ui/PasswordInput";
+import { toPublicError } from "@/lib/public-error";
 
 const CUISINES = ["Bistrot", "Brasserie", "Française", "Italienne", "Japonaise", "Fusion", "Autre"];
 
@@ -62,7 +63,7 @@ export default function InscriptionPage() {
       window.location.href = loginData.redirectTo || data.redirectTo || "/dashboard";
       return;
     }
-    setError(data.error || "Impossible de créer le compte");
+    setError(toPublicError(data.error, "Impossible de créer le compte"));
     setLoading(false);
   }
 

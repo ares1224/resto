@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import type { AiChatMessage } from "@/types";
 import { cn } from "@/lib/utils";
+import { toPublicError } from "@/lib/public-error";
 
 type SessionSummary = { id: string; title: string; updatedAt: string; messageCount: number };
 
@@ -117,7 +118,7 @@ export function GerantChatPanel() {
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: data.error ?? "Erreur lors de l'analyse.",
+          content: toPublicError(data.error, "Erreur lors de l'analyse."),
           createdAt: new Date().toISOString(),
         },
       ]);
