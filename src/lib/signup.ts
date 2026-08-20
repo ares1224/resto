@@ -1,6 +1,7 @@
 import { findUserByConfirmToken, findUserByEmail, updatePlatformDb } from "@/lib/db/store";
 import { isTokenValid } from "@/lib/password";
 import {
+  CONFIRM_TOKEN_HOURS,
   confirmationSubject,
   confirmationUrl,
   sendConfirmationEmail,

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { resendGerantConfirmation } from "@/lib/signup";
 
+export const runtime = "nodejs";
+
 export async function POST(request: Request) {
   let email = "";
   try {
@@ -12,7 +14,11 @@ export async function POST(request: Request) {
 
   const result = await resendGerantConfirmation(email);
   if ("error" in result) {
-    return NextResponse.json({ error: result.error }, { status: result.status });
+    const message =
+      result.status === 502
+        ? "L'envoi de l'email a échoué, veuillez réessayer"
+        : result.error;
+    return NextResponse.json({ error: message }, { status: result.status });
   }
   return NextResponse.json({ ok: true });
 }

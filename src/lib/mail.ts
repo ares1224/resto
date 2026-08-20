@@ -1,12 +1,21 @@
 import { Resend } from "resend";
 
-export const PLATFORM_NAME = process.env.PLATFORM_NAME || "Gestion restaurant";
-
 export const CONFIRM_TOKEN_HOURS = 24;
 
+/** Accès dynamique : Next n’inline pas `process.env["X"]` à `undefined` au build. */
+function env(name: string): string {
+  return (process.env[name] ?? "").trim();
+}
+
+export function platformName(): string {
+  return env("PLATFORM_NAME") || "Gestion restaurant";
+}
+
 function appUrl(): string {
-  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL.replace(/\/$/, "")}`;
+  const explicit = env("APP_URL").replace(/\/$/, "");
+  if (explicit) return explicit;
+  const vercel = env("VERCEL_URL").replace(/\/$/, "");
+  if (vercel) return `https://${vercel}`;
   return "http://localhost:3000";
 }
 
@@ -15,7 +24,11 @@ export function confirmationUrl(token: string): string {
 }
 
 export function emailFrom(): string {
-  return process.env.RESEND_FROM || `${PLATFORM_NAME} <beth.t@example.com>`;
+  return env("RESEND_FROM") || `${platformName()} <beth.t@example.com>`;
+}
+
+function resendApiKey(): string {
+  return env("RESEND_API_KEY");
 }
 
 function escapeHtml(value: string): string {
@@ -36,11 +49,12 @@ function confirmationHtml(input: {
   restaurantName: string;
   confirmUrl: string;
 }): string {
+  const name = escapeHtml(platformName());
   return `<!DOCTYPE html>
 <html>
   <body style="margin:0;padding:0;background:#F5F6FA;font-family:Arial,sans-serif;">
     <div style="max-width:520px;margin:32px auto;background:#ffffff;border-radius:16px;padding:32px;color:#1A1D23;">
-      <p style="margin:0 0 8px;font-size:12px;font-weight:bold;letter-spacing:0.08em;color:#1B3AE8;text-transform:uppercase;">${escapeHtml(PLATFORM_NAME)}</p>
+      <p style="margin:0 0 8px;font-size:12px;font-weight:bold;letter-spacing:0.08em;color:#1B3AE8;text-transform:uppercase;">${name}</p>
       <h1 style="margin:0 0 16px;font-size:22px;">Bienvenue ${escapeHtml(input.firstName)}</h1>
       <p style="margin:0 0 16px;font-size:15px;line-height:1.5;color:#374151;">
         Votre restaurant « ${escapeHtml(input.restaurantName)} » est presque prêt. Cliquez sur le bouton ci-dessous pour confirmer votre adresse email et activer votre espace.
@@ -66,7 +80,7 @@ function confirmationText(input: {
   return [
     `Bonjour ${input.firstName},`,
     "",
-    `Bienvenue sur ${PLATFORM_NAME}.`,
+    `Bienvenue sur ${platformName()}.`,
     `Confirmez votre adresse email pour activer l’espace de « ${input.restaurantName} ».`,
     "",
     input.confirmUrl,
@@ -75,40 +89,47 @@ function confirmationText(input: {
   ].join("\n");
 }
 
+export function confirmationSubject(): string {
+  return `Confirmez votre adresse email — ${platformName()}`;
+}
+
 export async function sendConfirmationEmail(input: {
   to: string;
   firstName: string;
   restaurantName: string;
   confirmUrl: string;
 }): Promise<{ sent: boolean; error?: string }> {
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = resendApiKey();
+  console.info("[mail] RESEND_API_KEY loaded:", Boolean(apiKey));
+
   if (!apiKey) {
-    return { sent: false, error: "Service d’email non configuré" };
+    console.error("[mail] RESEND_API_KEY is undefined — add it to .env.local and Vercel env, then redeploy.");
+    return { sent: false, error: "L'envoi de l'email a échoué, veuillez réessayer" };
   }
 
-  const subject = `Confirmez votre adresse email — ${PLATFORM_NAME}`;
+  const subject = confirmationSubject();
   const html = confirmationHtml(input);
   const text = confirmationText(input);
+  const from = emailFrom();
 
   try {
     const resend = new Resend(apiKey);
-    const { error } = await resend.emails.send({
-      from: emailFrom(),
+    const { data, error } = await resend.emails.send({
+      from,
       to: input.to,
       subject,
       html,
       text,
     });
-    if (error) return { sent: false, error: error.message };
+    if (error) {
+      console.error("[mail] Resend SDK error:", error.message);
+      return { sent: false, error: "L'envoi de l'email a échoué, veuillez réessayer" };
+    }
+    console.info("[mail] Resend accepted email", data?.id ?? "");
     return { sent: true };
   } catch (e) {
-    return {
-      sent: false,
-      error: e instanceof Error ? e.message : "Envoi impossible",
-    };
+    const message = e instanceof Error ? e.message : "Envoi impossible";
+    console.error("[mail] Resend exception:", message);
+    return { sent: false, error: "L'envoi de l'email a échoué, veuillez réessayer" };
   }
-}
-
-export function confirmationSubject(): string {
-  return `Confirmez votre adresse email — ${PLATFORM_NAME}`;
 }

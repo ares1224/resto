@@ -7,6 +7,8 @@ import {
 import { confirmTokenExpiresAt, sendGerantConfirmation } from "@/lib/signup";
 import type { Restaurant, User } from "@/types";
 
+export const runtime = "nodejs";
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request: Request) {
@@ -139,13 +141,20 @@ export async function POST(request: Request) {
   }
 
   const sent = await sendGerantConfirmation(user, restaurantName);
+  if (!sent.sent) {
+    return NextResponse.json(
+      {
+        error: "L'envoi de l'email a échoué, veuillez réessayer",
+        accountCreated: true,
+        email,
+      },
+      { status: 502 }
+    );
+  }
 
   return NextResponse.json({
     ok: true,
-    emailSent: sent.sent,
+    emailSent: true,
     email,
-    message: sent.sent
-      ? `Un email de confirmation a été envoyé à ${email}.`
-      : "Le compte a été créé. L’email n’a pas pu partir : utilisez « Renvoyer l’email ».",
   });
 }
