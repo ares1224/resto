@@ -18,6 +18,8 @@ import { computeRevenue, computePayrollRatio, computeWasteTotal } from "@/lib/bu
 import { detectAnomalies } from "@/lib/ai/anomaly-detector";
 import { BigActionButton } from "@/components/ui/BigActionButton";
 import { HelpTooltip } from "@/components/ui/HelpTooltip";
+import { SetupCompletenessBanner } from "@/components/dashboard/SetupCompletenessBanner";
+import { getSetupCompleteness } from "@/lib/setup-completeness";
 
 const DAY_LABELS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 
@@ -70,6 +72,7 @@ export function GerantDashboard({ db }: { db: Database }) {
   ].slice(0, 4);
 
   const urgentCount = lowStock + attentionItems.filter((i) => i.urgent).length;
+  const completeness = getSetupCompleteness(db);
 
   return (
     <div data-onboarding="dashboard-welcome">
@@ -82,6 +85,8 @@ export function GerantDashboard({ db }: { db: Database }) {
           <HelpTooltip text="Les chiffres clés et alertes importantes sont affichés ici. Le détail de chaque module reste accessible via le menu." />
         </p>
       </div>
+
+      <SetupCompletenessBanner items={completeness} />
 
       {/* KPI — grille 2 colonnes */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

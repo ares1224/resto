@@ -12,6 +12,13 @@ export function seedDatabase(): Database {
       peakSlots: [],
       managerPermissions: { ...DEFAULT_MANAGER_PERMISSIONS },
       sessionTimeoutMinutes: 30,
+      setupComplete: false,
+      address: "",
+      cuisineType: "",
+      timezone: "Europe/Paris",
+      currency: "EUR",
+      locale: "fr",
+      setupDraft: null,
     },
     users: [],
     employees: [],
@@ -48,5 +55,6 @@ export function seedDatabase(): Database {
 }
 
 export function isSetupComplete(db: Database): boolean {
+  if (db.settings.setupComplete === true) return true;
   return db.users.some((u) => u.role === "gerant");
 }

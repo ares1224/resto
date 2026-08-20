@@ -24,6 +24,15 @@ function migrateDb(db: Database): Database {
   if (!db.settings.sessionTimeoutMinutes) {
     db.settings.sessionTimeoutMinutes = 30;
   }
+  if (db.settings.setupComplete === undefined) {
+    db.settings.setupComplete = db.users.some((u) => u.role === "gerant");
+  }
+  if (db.settings.address === undefined) db.settings.address = "";
+  if (db.settings.cuisineType === undefined) db.settings.cuisineType = "";
+  if (!db.settings.timezone) db.settings.timezone = "Europe/Paris";
+  if (!db.settings.currency) db.settings.currency = "EUR";
+  if (!db.settings.locale) db.settings.locale = "fr";
+  if (db.settings.setupDraft === undefined) db.settings.setupDraft = null;
   if (!db.gerantAiChats) db.gerantAiChats = [];
   if (!db.planningPublications) {
     // Avant l'introduction de la validation, tous les créneaux étaient visibles

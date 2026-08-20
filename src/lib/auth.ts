@@ -1,8 +1,16 @@
 import { cookies } from "next/headers";
+import type { NextResponse } from "next/server";
 import type { Role, User } from "@/types";
 import { getDb } from "./db/store";
 
-const SESSION_COOKIE = "bistrot_session";
+export const SESSION_COOKIE = "bistrot_session";
+
+const SESSION_COOKIE_OPTIONS = {
+  httpOnly: true,
+  sameSite: "lax" as const,
+  path: "/",
+  maxAge: 60 * 60 * 24 * 7,
+};
 
 export type Session = {
   userId: string;
@@ -13,12 +21,8 @@ export type Session = {
   mustChangePassword?: boolean;
 };
 
-export async function login(email: string, password: string): Promise<Session | null> {
-  const db = await getDb();
-  const user = db.users.find((u) => u.email === email && u.password === password);
-  if (!user) return null;
-
-  const session: Session = {
+export function sessionFromUser(user: User): Session {
+  return {
     userId: user.id,
     email: user.email,
     name: user.name,
@@ -26,14 +30,26 @@ export async function login(email: string, password: string): Promise<Session | 
     employeeId: user.employeeId,
     mustChangePassword: user.mustChangePassword === true,
   };
+}
 
+export async function writeSessionCookie(session: Session): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, JSON.stringify(session), {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
-  });
+  cookieStore.set(SESSION_COOKIE, JSON.stringify(session), SESSION_COOKIE_OPTIONS);
+}
+
+export function attachSessionCookie(response: NextResponse, session: Session): NextResponse {
+  response.cookies.set(SESSION_COOKIE, JSON.stringify(session), SESSION_COOKIE_OPTIONS);
+  return response;
+}
+
+export async function login(email: string, password: string): Promise<Session | null> {
+  const db = await getDb();
+  const user = db.users.find((u) => u.email === email && u.password === password);
+  if (!user) return null;
+
+  const session = sessionFromUser(user);
+
+  await writeSessionCookie(session);
 
   return session;
 }
@@ -77,12 +93,7 @@ export async function refreshSessionCookie(): Promise<void> {
   };
 
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, JSON.stringify(updated), {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
-  });
+  cookieStore.set(SESSION_COOKIE, JSON.stringify(updated), SESSION_COOKIE_OPTIONS);
 }
 
 export async function getCurrentUser(): Promise<User | null> {

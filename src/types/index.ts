@@ -403,5 +403,26 @@ export type Database = {
     peakSlots: { dayOfWeek: number; start: string; end: string; minStaff: number }[];
     managerPermissions: ManagerPermissions;
     sessionTimeoutMinutes: number;
+    setupComplete?: boolean;
+    address?: string;
+    cuisineType?: string;
+    timezone?: string;
+    currency?: string;
+    locale?: string;
+    setupDraft?: SetupDraft | null;
   };
+};
+
+export type SetupDraft = {
+  step: number;
+  restaurantName: string;
+  address: string;
+  cuisineType: string;
+  covers: string;
+  name: string;
+  email: string;
+  password: string;
+  timezone: string;
+  currency: string;
+  locale: string;
 };
