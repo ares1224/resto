@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
+  "buildCommand": "NEXT_TELEMETRY_DISABLED=1 next build",
   "regions": ["cdg1"],
   "headers": [
     {

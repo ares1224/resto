@@ -64,7 +64,7 @@ function isPublic(path: string) {
   return matchesPrefix(path, PUBLIC_PREFIXES);
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const sessionRaw = request.cookies.get("bistrot_session")?.value;
   const path = request.nextUrl.pathname;
 
